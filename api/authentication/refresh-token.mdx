@@ -1,0 +1,398 @@
+---
+title: 'Refresh Token'
+description: 'Refresh expired access tokens without re-authentication'
+---
+
+## Endpoint
+
+```http
+POST /api/auth/refresh
+```
+
+Refreshes an expired or expiring access token using a valid refresh token. Returns a new access token and a new refresh token (token rotation).
+
+## Request Body
+
+<ParamField body="refresh_token" type="string" required>
+  The refresh token obtained from the login or previous refresh response. This token is long-lived and should be stored securely.
+</ParamField>
+
+## Response
+
+<ResponseField name="token" type="string">
+  New JWT access token to use for authenticating API requests. Include this in the `Authorization` header as `Bearer {token}`.
+</ResponseField>
+
+<ResponseField name="refresh_token" type="string">
+  New JWT refresh token. The previous refresh token is invalidated (token rotation). Store this securely for future refresh operations.
+</ResponseField>
+
+<ResponseField name="expires_at" type="integer">
+  Unix timestamp (seconds since epoch) indicating when the new access token expires.
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.vega.ai/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6IlNUQU5EQVJEIiwidG9rZW5fdHlwZSI6InJlZnJlc2giLCJpc3MiOiJWZWdhIEFJIiwic3ViIjoiam9obi5kb2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3MDk4MzIwMDAsImV4cCI6MTcxMDQzNjgwMH0.example_signature"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.vega.ai/api/auth/refresh', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  }),
+});
+
+const data = await response.json();
+console.log('New access token:', data.token);
+console.log('New refresh token:', data.refresh_token);
+```
+
+```python Python
+import requests
+
+url = 'https://api.vega.ai/api/auth/refresh'
+data = {
+    'refresh_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+print(f"New access token: {result['token']}")
+print(f"New refresh token: {result['refresh_token']}")
+```
+
+```go Go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+type RefreshRequest struct {
+    RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshResponse struct {
+    Token        string `json:"token"`
+    RefreshToken string `json:"refresh_token"`
+    ExpiresAt    int64  `json:"expires_at"`
+}
+
+func main() {
+    reqBody := RefreshRequest{
+        RefreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    }
+    
+    jsonData, _ := json.Marshal(reqBody)
+    resp, _ := http.Post(
+        "https://api.vega.ai/api/auth/refresh",
+        "application/json",
+        bytes.NewBuffer(jsonData),
+    )
+    
+    var result RefreshResponse
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Printf("New access token: %s\n", result.Token)
+    fmt.Printf("New refresh token: %s\n", result.RefreshToken)
+}
+```
+
+</CodeGroup>
+
+## Example Response
+
+```json 200 OK
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6IlNUQU5EQVJEIiwidG9rZW5fdHlwZSI6ImFjY2VzcyIsImlzcyI6IlZlZ2EgQUkiLCJzdWIiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImlhdCI6MTcwOTgzNTYwMCwiZXhwIjoxNzA5ODM5MjAwfQ.new_signature",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6IlNUQU5EQVJEIiwidG9rZW5fdHlwZSI6InJlZnJlc2giLCJpc3MiOiJWZWdhIEFJIiwic3ViIjoiam9obi5kb2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3MDk4MzU2MDAsImV4cCI6MTcxMDQ0MDQwMH0.new_signature",
+  "expires_at": 1709839200
+}
+```
+
+```json 400 Bad Request
+{
+  "error": "invalid request body"
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": "failed to refresh access token"
+}
+```
+
+## Implementation Details
+
+The refresh endpoint performs the following operations (see `internal/api/auth/handlers.go:30`):
+
+1. **Token Validation** - Validates the refresh token JWT signature and expiration
+2. **Token Type Check** - Ensures the token is a refresh token (not an access token)
+3. **User Lookup** - Retrieves the user from the database using the user ID from token claims
+4. **Token Generation** - Generates new access and refresh tokens
+5. **Token Rotation** - Returns a new refresh token, invalidating the old one
+6. **Response** - Returns both new tokens with expiration time
+
+<Note>
+  **Token Rotation**: The refresh endpoint implements token rotation for enhanced security. Each time you refresh, you receive a new refresh token. The old refresh token becomes invalid and cannot be reused.
+</Note>
+
+## Token Rotation Security
+
+Vega AI implements refresh token rotation to enhance security:
+
+### Why Token Rotation?
+
+- **Prevents Token Reuse** - If a refresh token is stolen, it can only be used once
+- **Detects Compromise** - Attempting to use an old refresh token may indicate a security breach
+- **Limits Attack Window** - Stolen tokens have a limited lifetime
+
+### How It Works
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    
+    Note over Client: Access token expires
+    Client->>API: POST /api/auth/refresh (refresh_token_1)
+    API->>API: Validate refresh_token_1
+    API->>API: Generate new tokens
+    API-->>Client: access_token_2 + refresh_token_2
+    Note over API: refresh_token_1 is now invalid
+    
+    Note over Client: Store refresh_token_2
+    Note over Client: Discard refresh_token_1
+    
+    Note over Client: Access token expires again
+    Client->>API: POST /api/auth/refresh (refresh_token_2)
+    API->>API: Validate refresh_token_2
+    API->>API: Generate new tokens
+    API-->>Client: access_token_3 + refresh_token_3
+    Note over API: refresh_token_2 is now invalid
+```
+
+## Automatic Token Refresh
+
+Implement automatic token refresh in your application to provide a seamless user experience:
+
+### JavaScript Example
+
+```javascript
+class TokenManager {
+  constructor() {
+    this.accessToken = null;
+    this.refreshToken = null;
+    this.expiresAt = null;
+  }
+
+  async login(username, password) {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await response.json();
+    this.setTokens(data);
+    return data;
+  }
+
+  setTokens(data) {
+    this.accessToken = data.token;
+    this.refreshToken = data.refresh_token;
+    this.expiresAt = data.expires_at;
+  }
+
+  async getValidAccessToken() {
+    // Check if token is expired or will expire in 60 seconds
+    const now = Math.floor(Date.now() / 1000);
+    if (this.expiresAt && this.expiresAt - now < 60) {
+      await this.refresh();
+    }
+    return this.accessToken;
+  }
+
+  async refresh() {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: this.refreshToken }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Token refresh failed');
+    }
+
+    const data = await response.json();
+    this.setTokens(data);
+    return data;
+  }
+
+  async apiRequest(url, options = {}) {
+    const token = await this.getValidAccessToken();
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+    };
+
+    return fetch(url, { ...options, headers });
+  }
+}
+
+// Usage
+const tokenManager = new TokenManager();
+await tokenManager.login('john.doe@example.com', 'password');
+
+// Automatically refreshes token if needed
+const response = await tokenManager.apiRequest('/api/jobs');
+```
+
+### Python Example
+
+```python
+import time
+import requests
+from typing import Optional
+
+class TokenManager:
+    def __init__(self):
+        self.access_token: Optional[str] = None
+        self.refresh_token: Optional[str] = None
+        self.expires_at: Optional[int] = None
+
+    def login(self, username: str, password: str) -> dict:
+        response = requests.post(
+            'https://api.vega.ai/api/auth/login',
+            json={'username': username, 'password': password}
+        )
+        data = response.json()
+        self.set_tokens(data)
+        return data
+
+    def set_tokens(self, data: dict):
+        self.access_token = data['token']
+        self.refresh_token = data['refresh_token']
+        self.expires_at = data['expires_at']
+
+    def get_valid_access_token(self) -> str:
+        # Check if token is expired or will expire in 60 seconds
+        now = int(time.time())
+        if self.expires_at and self.expires_at - now < 60:
+            self.refresh()
+        return self.access_token
+
+    def refresh(self) -> dict:
+        response = requests.post(
+            'https://api.vega.ai/api/auth/refresh',
+            json={'refresh_token': self.refresh_token}
+        )
+        
+        if not response.ok:
+            raise Exception('Token refresh failed')
+        
+        data = response.json()
+        self.set_tokens(data)
+        return data
+
+    def api_request(self, url: str, **kwargs) -> requests.Response:
+        token = self.get_valid_access_token()
+        headers = kwargs.get('headers', {})
+        headers['Authorization'] = f'Bearer {token}'
+        kwargs['headers'] = headers
+        return requests.request(**kwargs, url=url)
+
+# Usage
+tm = TokenManager()
+tm.login('john.doe@example.com', 'password')
+
+# Automatically refreshes token if needed
+response = tm.api_request('https://api.vega.ai/api/jobs', method='GET')
+```
+
+## Error Handling
+
+### Invalid Refresh Token
+
+If the refresh token is invalid, expired, or not a refresh token:
+
+```json
+{
+  "error": "failed to refresh access token"
+}
+```
+
+When this occurs:
+1. Clear stored tokens
+2. Redirect user to login page
+3. User must re-authenticate
+
+### User Not Found
+
+If the user associated with the refresh token no longer exists:
+
+```json
+{
+  "error": "failed to refresh access token"
+}
+```
+
+This can happen if:
+- User account was deleted
+- Database error occurred
+- Token was tampered with
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Store Tokens Securely">
+    - Use secure storage mechanisms (e.g., encrypted storage, secure keychain)
+    - Never store tokens in localStorage for web apps
+    - Use HTTP-only cookies for web applications when possible
+    - Encrypt tokens at rest for mobile/desktop apps
+  </Accordion>
+
+  <Accordion title="Implement Proactive Refresh">
+    - Refresh tokens before they expire (e.g., 60 seconds before expiration)
+    - Implement retry logic for failed refresh attempts
+    - Queue API requests during token refresh to avoid race conditions
+  </Accordion>
+
+  <Accordion title="Handle Refresh Failures Gracefully">
+    - Clear stored tokens on refresh failure
+    - Redirect to login page
+    - Show appropriate error messages to users
+    - Log refresh failures for monitoring
+  </Accordion>
+
+  <Accordion title="Monitor Token Usage">
+    - Track token refresh frequency
+    - Alert on unusual refresh patterns (potential security issue)
+    - Implement rate limiting on refresh endpoint
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication Overview" icon="shield-check" href="/api/authentication/overview">
+    Learn about all authentication methods
+  </Card>
+  <Card title="Login Endpoint" icon="right-to-bracket" href="/api/authentication/login">
+    Get initial tokens via login
+  </Card>
+</CardGroup>

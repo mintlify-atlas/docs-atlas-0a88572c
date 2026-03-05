@@ -1,0 +1,319 @@
+---
+title: 'Cloud vs Self-Hosted'
+description: 'Choose the right deployment option for your needs'
+icon: 'scale-balanced'
+---
+
+Vega AI offers two deployment options: a fully managed cloud service and self-hosted installation. Choose the option that best fits your privacy requirements, technical expertise, and usage patterns.
+
+## Quick Comparison
+
+| Feature | Cloud | Self-Hosted |
+|---------|-------|-------------|
+| **Setup Time** | Instant | 5 minutes |
+| **Maintenance** | Zero | Minimal |
+| **Data Privacy** | Managed by service | Complete control |
+| **AI Quota** | 10 analyses/month | Unlimited |
+| **Authentication** | Google OAuth | Local accounts |
+| **Updates** | Automatic | Manual pull |
+| **Cost** | Free tier | API costs only |
+| **Customization** | Limited | Full control |
+
+## Cloud Deployment
+
+The cloud version is hosted at [vega.benidevo.com](https://vega.benidevo.com) and provides instant access without any setup.
+
+### Advantages
+
+<CardGroup cols={2}>
+  <Card title="Zero Setup" icon="bolt">
+    Start tracking jobs immediately with no installation required
+  </Card>
+  <Card title="Always Updated" icon="arrow-up">
+    Automatic updates with the latest features and fixes
+  </Card>
+  <Card title="Cross-Device Access" icon="mobile">
+    Access your data from anywhere with internet
+  </Card>
+  <Card title="No Maintenance" icon="shield-check">
+    No need to manage infrastructure or updates
+  </Card>
+</CardGroup>
+
+### Features
+
+**Authentication**
+- Google OAuth only (no password-based accounts)
+- Secure session management with JWT tokens
+- Automatic user creation on first login
+
+**AI Usage Quotas**
+- 10 AI job analyses per month (free tier)
+- Unlimited job tracking and management
+- Admin users have unlimited quotas
+
+**Data Isolation**
+- Multi-tenant architecture with row-level security
+- Your data is isolated from other users
+- Shared company reference data (prevents duplicates)
+
+### Limitations
+
+<Warning>
+  **Quota Limits**: Free tier includes 10 AI analyses per month. Self-hosted has no limits.
+</Warning>
+
+<Note>
+  **Data Privacy**: While your data is isolated and secure, it's stored on our servers. For complete data control, use self-hosted mode.
+</Note>
+
+## Self-Hosted Deployment
+
+Run Vega AI on your own infrastructure with complete control over your data and configuration.
+
+### Advantages
+
+<CardGroup cols={2}>
+  <Card title="Complete Privacy" icon="lock">
+    Your data never leaves your infrastructure
+  </Card>
+  <Card title="Unlimited AI Usage" icon="infinity">
+    No quotas on AI features (only Gemini API limits apply)
+  </Card>
+  <Card title="Full Customization" icon="sliders">
+    Configure every aspect to your needs
+  </Card>
+  <Card title="No Internet Required" icon="network-wired">
+    Run locally without external dependencies (except Gemini API)
+  </Card>
+</CardGroup>
+
+### Requirements
+
+**Minimum Setup:**
+- Docker (or compatible runtime)
+- Gemini API key (free from Google)
+- 100MB disk space
+- 512MB RAM
+
+**Optional:**
+- Docker Compose (for easier management)
+- Reverse proxy (for HTTPS/custom domain)
+- External database (default: SQLite)
+
+### Features
+
+**Authentication**
+- Local username/password accounts
+- Default admin account created on first run
+- Optional Google OAuth integration
+
+**Configuration**
+```bash config
+# Minimal configuration
+GEMINI_API_KEY=your-api-key
+
+# Optional: customize admin credentials
+ADMIN_USERNAME=myadmin
+ADMIN_PASSWORD=SecurePassword123
+
+# Optional: advanced settings
+TOKEN_SECRET=your-jwt-secret
+CORS_ALLOWED_ORIGINS=*
+```
+
+**Data Storage**
+- SQLite database with optimized settings
+- Docker volume for persistence
+- Easy backup and restore
+- Data portability
+
+### Deployment Options
+
+<Tabs>
+  <Tab title="Docker Run">
+    ```bash
+    docker run --pull always -d \
+      --name vega-ai \
+      -p 8765:8765 \
+      -v vega-data:/app/data \
+      -e GEMINI_API_KEY=your-api-key \
+      ghcr.io/benidevo/vega-ai:latest
+    ```
+  </Tab>
+  
+  <Tab title="Docker Compose">
+    ```yaml docker-compose.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        ports:
+          - "8765:8765"
+        volumes:
+          - vega-data:/app/data
+        environment:
+          - GEMINI_API_KEY=your-api-key
+        restart: unless-stopped
+
+    volumes:
+      vega-data:
+    ```
+    
+    Start with: `docker compose up -d`
+  </Tab>
+  
+  <Tab title="Docker Swarm">
+    ```yaml docker-compose.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        ports:
+          - "8765:8765"
+        volumes:
+          - vega-data:/app/data
+        secrets:
+          - gemini_api_key
+        environment:
+          - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+        deploy:
+          replicas: 1
+          restart_policy:
+            condition: on-failure
+
+    secrets:
+      gemini_api_key:
+        external: true
+
+    volumes:
+      vega-data:
+    ```
+    
+    Deploy with secrets:
+    ```bash
+    echo "your-api-key" | docker secret create gemini_api_key -
+    docker stack deploy -c docker-compose.yml vega-stack
+    ```
+  </Tab>
+</Tabs>
+
+### Platform Support
+
+Vega AI Docker images support multiple architectures:
+
+- **AMD64** (Intel/AMD processors)
+- **ARM64** (Apple Silicon, Raspberry Pi 4+)
+
+The same image works across all platforms:
+
+```bash
+# Works on Intel, AMD, and ARM processors
+docker pull ghcr.io/benidevo/vega-ai:latest
+```
+
+## Cost Comparison
+
+### Cloud Mode
+
+**Free Tier:**
+- 10 AI analyses per month
+- Unlimited job tracking
+- All features included
+
+**Your Costs:**
+- $0 (free tier)
+- No infrastructure costs
+- No API costs
+
+### Self-Hosted Mode
+
+**Infrastructure:**
+- Free (run on existing hardware)
+- Or $5-10/month (small VPS)
+
+**API Costs:**
+- Gemini API usage (pay-as-you-go)
+- Typically $0-5/month for personal use
+- First 15 requests/minute are free
+
+<Note>
+  **Gemini API Pricing**: Google's Gemini API has a generous free tier. For typical job search usage (5-10 analyses per week), costs are usually zero or minimal. Check current pricing at [Google AI Pricing](https://ai.google.dev/pricing).
+</Note>
+
+## Migration Between Modes
+
+### Cloud to Self-Hosted
+
+Currently, you'll need to manually recreate your data:
+
+1. Export job data from cloud (copy/paste)
+2. Download your profile information
+3. Set up self-hosted instance
+4. Import data manually
+
+<Note>
+  **Future Feature**: Automated data export/import is planned for a future release.
+</Note>
+
+### Self-Hosted to Cloud
+
+Same process as above - manual migration currently required.
+
+## Security Considerations
+
+### Cloud Mode
+
+**Pros:**
+- Managed infrastructure and security updates
+- HTTPS/TLS by default
+- Professional monitoring and backups
+
+**Cons:**
+- Data stored on external servers
+- Subject to service availability
+- Must trust service provider
+
+### Self-Hosted Mode
+
+**Pros:**
+- Complete data control
+- No third-party access
+- Air-gapped deployment possible
+
+**Cons:**
+- You manage security updates
+- Need to configure HTTPS yourself
+- Responsible for backups
+
+## Recommendations
+
+### Choose Cloud If:
+
+✅ You want instant setup with zero maintenance
+✅ You're comfortable with managed services
+✅ You don't need more than 10 AI analyses per month
+✅ You prefer automatic updates
+✅ You want cross-device access without VPN
+
+### Choose Self-Hosted If:
+
+✅ You need complete data privacy
+✅ You want unlimited AI usage
+✅ You have technical expertise (or want to learn)
+✅ You need custom configurations
+✅ You're already running other self-hosted services
+✅ You want to run it air-gapped or on a local network
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Try Cloud" icon="cloud" href="https://vega.benidevo.com">
+    Start using Vega AI instantly with no setup
+  </Card>
+  <Card title="Self-Host Guide" icon="server" href="/getting-started/quickstart">
+    Deploy Vega AI on your own infrastructure
+  </Card>
+</CardGroup>
+
+<Note>
+  **Can't Decide?** Start with the cloud version to test Vega AI. You can always migrate to self-hosted later if your needs change.
+</Note>

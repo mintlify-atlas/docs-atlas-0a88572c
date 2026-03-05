@@ -1,0 +1,270 @@
+---
+title: 'Job Tracking & Management'
+description: 'Track and manage your job applications throughout the entire hiring process with Vega AI'
+icon: 'briefcase'
+---
+
+## Overview
+
+Vega AI provides a comprehensive job tracking system that helps you manage every aspect of your job search. From capturing job postings to tracking application statuses, everything is organized in one centralized dashboard.
+
+<Note>
+  Vega AI automatically detects duplicate jobs based on company name and job title, preventing you from adding the same position twice.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Centralized Dashboard" icon="table-columns">
+    View all your job applications in one place with smart filtering and sorting options.
+  </Card>
+  
+  <Card title="Status Tracking" icon="list-check">
+    Track applications through six stages: Interested, Applied, Interviewing, Offer Received, Rejected, and Not Interested.
+  </Card>
+  
+  <Card title="Job Information" icon="file-lines">
+    Store comprehensive job details including title, description, location, job type, required skills, and URLs.
+  </Card>
+  
+  <Card title="Match Scoring" icon="chart-line">
+    AI-powered match scores (0-100%) help you prioritize applications based on your profile compatibility.
+  </Card>
+</CardGroup>
+
+## Job Statuses
+
+Vega AI uses a six-stage status system to track your application progress:
+
+<Steps>
+  <Step title="Interested">
+    Initial stage when you add a job posting. Use this for jobs you're considering applying to.
+  </Step>
+  
+  <Step title="Applied">
+    Mark a job as "Applied" once you've submitted your application.
+  </Step>
+  
+  <Step title="Interviewing">
+    Track jobs where you've been invited to interview.
+  </Step>
+  
+  <Step title="Offer Received">
+    Record when you receive a job offer.
+  </Step>
+  
+  <Step title="Rejected">
+    Track applications that were unsuccessful.
+  </Step>
+  
+  <Step title="Not Interested">
+    Mark jobs you've decided not to pursue.
+  </Step>
+</Steps>
+
+## Adding Jobs
+
+### Manual Entry
+
+Add jobs directly through the web interface:
+
+<Steps>
+  <Step title="Navigate to New Job">
+    Click the "New Job" button in the navigation menu.
+  </Step>
+  
+  <Step title="Fill Required Fields">
+    Enter the job title, company name, and job description (required fields).
+  </Step>
+  
+  <Step title="Add Optional Details">
+    Optionally include location, job type, required skills, source URL, application URL, and notes.
+  </Step>
+  
+  <Step title="Set Initial Status">
+    Choose the initial status (defaults to "Interested").
+  </Step>
+  
+  <Step title="Save">
+    Click "Add Job" to save the entry to your dashboard.
+  </Step>
+</Steps>
+
+### Job Types Supported
+
+Vega AI supports multiple employment types:
+
+- **Full Time** - Standard full-time employment
+- **Part Time** - Part-time positions
+- **Contract** - Contract-based work
+- **Intern** - Internship opportunities
+- **Remote** - Remote work positions
+- **Freelance** - Freelance projects
+- **Other** - Other employment types
+
+## Managing Jobs
+
+### Dashboard Filtering
+
+Filter your jobs by status to focus on what matters:
+
+```plaintext
+Active Jobs - Shows Interested, Applied, Interviewing, and Offer Received
+All Jobs - Displays every job in your database
+By Status - Filter by specific status (Applied, Interviewing, etc.)
+```
+
+### Sorting Options
+
+Organize your jobs by:
+
+- **Match Score** (Default) - Shows highest compatibility first
+- **Updated At** - Recently modified jobs first
+- **Created At** - Newest jobs first
+
+Both ascending and descending order are supported.
+
+### Updating Job Details
+
+You can edit any job field directly from the job details page:
+
+<CodeGroup>
+```go Job Model Fields
+type Job struct {
+    ID              int
+    Title           string
+    Description     string
+    Company         Company
+    Location        string
+    JobType         JobType
+    Status          JobStatus
+    SourceURL       string
+    RequiredSkills  []string
+    ApplicationURL  string
+    MatchScore      *int
+    Notes           string
+    CreatedAt       time.Time
+    UpdatedAt       time.Time
+    FirstAnalyzedAt *time.Time
+}
+```
+
+```go Status Enum
+const (
+    INTERESTED JobStatus = iota
+    APPLIED
+    INTERVIEWING
+    OFFER_RECEIVED
+    REJECTED
+    NOT_INTERESTED
+)
+```
+</CodeGroup>
+
+## Job Details Page
+
+Each job has a comprehensive details page featuring:
+
+<CardGroup cols={2}>
+  <Card title="Job Information" icon="info-circle">
+    Complete job posting details including description, requirements, and company information.
+  </Card>
+  
+  <Card title="AI Analysis" icon="brain">
+    Access AI-powered match analysis, CV generation, and cover letter creation.
+  </Card>
+  
+  <Card title="Status Management" icon="toggle-on">
+    Quick status updates with one-click transitions.
+  </Card>
+  
+  <Card title="Notes & Links" icon="note-sticky">
+    Add personal notes and quick access to job source and application URLs.
+  </Card>
+</CardGroup>
+
+## Duplicate Detection
+
+Vega AI automatically prevents duplicate job entries:
+
+<Note>
+  When you try to add a job with the same title and company name as an existing entry, Vega AI will:
+  - Display an informational message: "Job already exists in your list"
+  - Return the existing job instead of creating a duplicate
+  - Redirect you to the existing job's details page
+</Note>
+
+## Pagination
+
+The dashboard supports pagination for large job lists:
+
+- Default: 12 jobs per page
+- Customizable limit (up to 100 per page)
+- Navigation controls with page numbers
+- Shows total items and current page position
+
+## Data Structure
+
+### Job Filter Options
+
+```go
+type JobFilter struct {
+    CompanyID       *int
+    Status          *JobStatus
+    ExcludeStatuses []JobStatus
+    JobType         *JobType
+    Matched         *bool        // Filter by match score >= 70
+    Limit           int
+    Offset          int
+    SortBy          string       // "match_score", "updated_at", "created_at"
+    SortOrder       string       // "asc" or "desc"
+}
+```
+
+### Job Statistics
+
+Your dashboard tracks key metrics:
+
+```go
+type JobStats struct {
+    TotalJobs    int  // Total jobs in system
+    TotalApplied int  // Jobs with "Applied" status
+    HighMatch    int  // Jobs with match score >= 70
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep Information Updated">
+    Regularly update job statuses as you progress through the hiring process. This helps you stay organized and provides accurate analytics.
+  </Accordion>
+  
+  <Accordion title="Use Notes Effectively">
+    Add notes about interview dates, key contacts, follow-up actions, and important details you discover during the application process.
+  </Accordion>
+  
+  <Accordion title="Leverage Match Scores">
+    Focus your energy on jobs with higher match scores (70%+). These positions align better with your profile and have higher success potential.
+  </Accordion>
+  
+  <Accordion title="Track Source URLs">
+    Always include the source URL so you can easily reference the original job posting.
+  </Accordion>
+  
+  <Accordion title="Add Required Skills">
+    List the key skills mentioned in the job posting. This improves AI analysis accuracy and helps you prepare for interviews.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AI Job Matching" icon="wand-magic-sparkles" href="/features/ai-matching">
+    Learn how Vega AI analyzes job compatibility with your profile.
+  </Card>
+  
+  <Card title="Document Generation" icon="file-pdf" href="/features/document-generation">
+    Generate tailored CVs and cover letters for each application.
+  </Card>
+</CardGroup>

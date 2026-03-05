@@ -1,0 +1,141 @@
+---
+title: 'Jobs API Overview'
+description: 'Manage job postings and track your application quota'
+---
+
+## Introduction
+
+The Jobs API allows you to programmatically manage job postings captured through the Vega AI browser extension or other integrations. This API enables you to create job entries, track your quota usage, and integrate job tracking into your workflow.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://api.vegaai.com/api/jobs
+```
+
+## Authentication
+
+All Jobs API endpoints require authentication using a Bearer token. Include your API token in the `Authorization` header:
+
+```bash
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+<Warning>
+  Keep your API token secure and never share it publicly. Tokens have the same permissions as your user account.
+</Warning>
+
+## Available Endpoints
+
+The Jobs API provides the following endpoints:
+
+<CardGroup cols={2}>
+  <Card title="Create Job" icon="plus" href="/api/jobs/create-job">
+    Add a new job posting to your tracker
+  </Card>
+  
+  <Card title="Get Quota Status" icon="chart-line" href="/api/jobs/get-quota">
+    Check your monthly job capture quota
+  </Card>
+</CardGroup>
+
+## Common Response Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success |
+| `400` | Bad Request - Invalid input data |
+| `401` | Unauthorized - Invalid or missing token |
+| `409` | Conflict - Resource already exists |
+| `500` | Internal Server Error |
+
+## Rate Limits
+
+API requests are subject to rate limiting based on your subscription tier. Free tier users have a monthly quota for job captures that can be checked using the [Get Quota Status](/api/jobs/get-quota) endpoint.
+
+<Note>
+  Duplicate jobs (same source URL) do not count against your quota.
+</Note>
+
+## Job Types
+
+The following job types are supported:
+
+- `full_time` - Full-time position
+- `part_time` - Part-time position
+- `contract` - Contract/temporary position
+- `intern` - Internship
+- `remote` - Remote position
+- `freelance` - Freelance work
+- `other` - Other employment types
+
+## Job Status Values
+
+Jobs can have the following status values:
+
+- `interested` - Initial state when job is saved
+- `applied` - Application submitted
+- `interviewing` - In interview process
+- `offer_received` - Job offer received
+- `rejected` - Application rejected
+- `not_interested` - No longer interested
+
+## Error Handling
+
+All error responses follow a consistent format:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+### Common Errors
+
+<AccordionGroup>
+  <Accordion title="Invalid request format">
+    **Status:** 400 Bad Request
+    
+    The request body is missing required fields or contains invalid data types.
+    
+    **Solution:** Verify all required fields are present and have valid values.
+  </Accordion>
+  
+  <Accordion title="Job already exists">
+    **Status:** 409 Conflict
+    
+    A job with the same source URL already exists in your tracker.
+    
+    **Solution:** Update the existing job or use a different source URL.
+  </Accordion>
+  
+  <Accordion title="Unauthorized">
+    **Status:** 401 Unauthorized
+    
+    Authentication token is missing or invalid.
+    
+    **Solution:** Include a valid Bearer token in the Authorization header.
+  </Accordion>
+  
+  <Accordion title="Quota exceeded">
+    **Status:** 403 Forbidden
+    
+    Your monthly job capture quota has been reached.
+    
+    **Solution:** Upgrade your plan or wait for the quota to reset.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Job" icon="rocket" href="/api/jobs/create-job">
+    Learn how to add jobs to your tracker
+  </Card>
+  
+  <Card title="Monitor Your Quota" icon="gauge" href="/api/jobs/get-quota">
+    Track your API usage and limits
+  </Card>
+</CardGroup>

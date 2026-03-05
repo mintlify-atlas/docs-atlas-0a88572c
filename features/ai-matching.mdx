@@ -1,0 +1,366 @@
+---
+title: 'AI Job Matching'
+description: 'Analyze job compatibility with AI-powered matching that scores your fit for each position'
+icon: 'wand-magic-sparkles'
+---
+
+## Overview
+
+Vega AI's job matching system uses advanced AI to analyze the compatibility between your profile and job postings. The system provides a comprehensive match score (0-100%) along with detailed insights about your strengths, weaknesses, and key highlights.
+
+<Note>
+  Match analysis is performed using Google's Gemini AI model, which analyzes your complete profile against the job requirements in under 30 seconds.
+</Note>
+
+## How It Works
+
+<Steps>
+  <Step title="Profile Analysis">
+    The AI analyzes your complete profile including work experience, education, skills, certifications, and career summary.
+  </Step>
+  
+  <Step title="Job Requirements Extraction">
+    Job descriptions are parsed to identify required skills, qualifications, experience level, and key responsibilities.
+  </Step>
+  
+  <Step title="Compatibility Scoring">
+    A sophisticated algorithm compares your profile against job requirements and generates a 0-100% match score.
+  </Step>
+  
+  <Step title="Detailed Insights">
+    The AI provides specific strengths, areas for improvement, key highlights, and personalized feedback.
+  </Step>
+</Steps>
+
+## Match Score Categories
+
+Vega AI categorizes match results into six tiers:
+
+<CardGroup cols={2}>
+  <Card title="Excellent Match (90-100%)" icon="star">
+    Outstanding fit. Your profile strongly aligns with all major requirements. Apply with confidence.
+  </Card>
+  
+  <Card title="Strong Match (80-89%)" icon="circle-check">
+    Great fit. You meet most requirements with minor gaps. Strong candidate.
+  </Card>
+  
+  <Card title="Good Match (70-79%)" icon="thumbs-up">
+    Solid fit. You satisfy core requirements with some development areas.
+  </Card>
+  
+  <Card title="Fair Match (60-69%)" icon="scale-balanced">
+    Moderate fit. You have relevant experience but significant gaps exist.
+  </Card>
+  
+  <Card title="Partial Match (50-59%)" icon="circle-half-stroke">
+    Limited fit. Major skill or experience gaps present.
+  </Card>
+  
+  <Card title="Poor Match (0-49%)" icon="circle-xmark">
+    Weak fit. Profile doesn't align with core requirements.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Jobs with match scores of 70% or higher are marked as "Matched" and highlighted in your dashboard for easy identification.
+</Tip>
+
+## Analysis Components
+
+### Match Score
+
+The primary metric (0-100%) indicating overall compatibility:
+
+```go
+type MatchResult struct {
+    MatchScore int      `json:"matchScore"`  // 0-100 percentage
+    Strengths  []string `json:"strengths"`
+    Weaknesses []string `json:"weaknesses"`
+    Highlights []string `json:"highlights"`
+    Feedback   string   `json:"feedback"`
+}
+```
+
+### Strengths
+
+Positive aspects of your profile that align with the job:
+
+- Relevant work experience
+- Matching technical skills
+- Appropriate education level
+- Industry experience
+- Certifications that add value
+
+### Weaknesses
+
+Areas where your profile may not fully meet requirements:
+
+- Missing skills or technologies
+- Experience level gaps
+- Industry transition challenges
+- Education requirements not met
+- Location or availability constraints
+
+### Highlights
+
+Key standout points that make you competitive:
+
+- Unique qualifications
+- Exceptional achievements
+- Rare skill combinations
+- Leadership experience
+- Special projects or contributions
+
+### Feedback
+
+Personalized narrative analysis providing:
+
+- Overall assessment summary
+- Application recommendations
+- Suggestions for improvement
+- Interview preparation tips
+- Areas to emphasize in your application
+
+## Running a Match Analysis
+
+<Steps>
+  <Step title="Complete Your Profile">
+    Ensure your profile includes work experience, education, skills, and a career summary. Incomplete profiles receive an error message.
+  </Step>
+  
+  <Step title="Navigate to Job Details">
+    Open the job you want to analyze from your dashboard.
+  </Step>
+  
+  <Step title="Click Analyze Job">
+    Click the "Analyze Job Match" button on the job details page.
+  </Step>
+  
+  <Step title="Wait for Analysis">
+    The AI processes your profile and job description (typically 15-30 seconds).
+  </Step>
+  
+  <Step title="Review Results">
+    View your match score, strengths, weaknesses, highlights, and personalized feedback.
+  </Step>
+</Steps>
+
+<Warning>
+  Match analysis requires a complete profile with at least a career summary, skills, and either work experience or education. You'll receive a validation error if your profile is incomplete.
+</Warning>
+
+## Match History
+
+Vega AI maintains a complete history of all match analyses:
+
+### Why Track History?
+
+<CardGroup cols={2}>
+  <Card title="Profile Evolution" icon="chart-line">
+    See how your match scores improve as you update your profile with new skills and experience.
+  </Card>
+  
+  <Card title="Compare Results" icon="code-compare">
+    Compare different analysis runs to understand how profile changes affect compatibility.
+  </Card>
+  
+  <Card title="Re-analysis" icon="rotate">
+    Run multiple analyses as your profile evolves without affecting your quota (re-analyses are free).
+  </Card>
+  
+  <Card title="Historical Context" icon="clock-rotate-left">
+    Review past analyses to track your job search journey.
+  </Card>
+</CardGroup>
+
+### Accessing Match History
+
+From any job details page:
+
+1. Click "View Match History" in the AI analysis section
+2. See all previous analyses with timestamps
+3. Compare scores and insights across different profile versions
+4. Delete old analyses if needed
+
+```go
+type MatchResult struct {
+    ID         int       `json:"id"`
+    UserID     int       `json:"user_id"`
+    JobID      int       `json:"job_id"`
+    MatchScore int       `json:"match_score"`
+    Strengths  []string  `json:"strengths"`
+    Weaknesses []string  `json:"weaknesses"`
+    Highlights []string  `json:"highlights"`
+    Feedback   string    `json:"feedback"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+```
+
+## Quota System
+
+Match analysis operations are subject to quota limits in cloud mode:
+
+### Free Tier Quota
+
+<Card title="Monthly Quota" icon="calendar">
+  Cloud users receive a monthly quota for AI operations. The exact limit depends on your subscription tier.
+</Card>
+
+### Quota Rules
+
+<AccordionGroup>
+  <Accordion title="First Analysis Costs Quota">
+    The first time you analyze a job, it counts against your monthly quota.
+  </Accordion>
+  
+  <Accordion title="Re-analysis Is Free">
+    Re-analyzing a job you've already analyzed doesn't count against your quota. Update your profile and re-analyze as many times as needed.
+  </Accordion>
+  
+  <Accordion title="Quota Tracking">
+    The job details page shows your current quota usage and remaining analyses.
+  </Accordion>
+  
+  <Accordion title="Quota Reset">
+    Quotas reset at the beginning of each month.
+  </Accordion>
+</AccordionGroup>
+
+```go
+type QuotaCheckResult struct {
+    Allowed bool   `json:"allowed"`
+    Reason  string `json:"reason"`
+    Status  QuotaStatus `json:"status"`
+}
+
+type QuotaStatus struct {
+    Used  int `json:"used"`
+    Limit int `json:"limit"` // -1 for unlimited
+}
+```
+
+## Profile Requirements
+
+For accurate match analysis, your profile must include:
+
+<Tabs>
+  <Tab title="Required">
+    - **First Name** and **Last Name**
+    - **Career Summary** (at least 50 characters)
+    - **Skills** (at least 3 skills)
+    - **Work Experience** OR **Education** (at least one entry)
+  </Tab>
+  
+  <Tab title="Recommended">
+    - Detailed work experience with descriptions
+    - Multiple education entries
+    - Relevant certifications
+    - Professional title
+    - Contact information
+    - LinkedIn/GitHub profiles
+  </Tab>
+  
+  <Tab title="Optional">
+    - Additional context (career goals, preferences)
+    - Location information
+    - Phone number
+    - Personal website
+  </Tab>
+</Tabs>
+
+## AI Analysis Details
+
+### Analysis Timeout
+
+Match analysis has a 30-second timeout:
+
+```go
+// Add timeout to prevent indefinite waiting on AI operations
+// Job analysis is complex but should complete within 30 seconds
+aiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+defer cancel()
+
+response, err := j.model.Generate(aiCtx, llm.GenerateRequest{
+    Prompt:       *prompt,
+    ResponseType: llm.ResponseTypeMatchResult,
+})
+```
+
+### Validation
+
+Results are validated before being displayed:
+
+```go
+func (j *JobMatcherService) validateMatchResult(result *models.MatchResult) {
+    // Ensure score is 0-100
+    if result.MatchScore < 0 || result.MatchScore > 100 {
+        result.MatchScore = 0
+    }
+    
+    // Ensure arrays are never empty
+    if len(result.Strengths) == 0 {
+        result.Strengths = []string{"No specific strengths identified"}
+    }
+    
+    if len(result.Weaknesses) == 0 {
+        result.Weaknesses = []string{"No specific weaknesses identified"}
+    }
+    
+    if len(result.Highlights) == 0 {
+        result.Highlights = []string{"No specific highlights identified"}
+    }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Complete Your Profile First">
+    Before running any match analyses, ensure your profile is comprehensive and up-to-date. Incomplete profiles produce less accurate results.
+  </Accordion>
+  
+  <Accordion title="Update Skills Regularly">
+    Keep your skills list current. Add new technologies and frameworks as you learn them to improve match accuracy.
+  </Accordion>
+  
+  <Accordion title="Write Detailed Work Experience">
+    Include specific achievements and technologies used in each role. This helps the AI identify relevant experience.
+  </Accordion>
+  
+  <Accordion title="Craft a Strong Career Summary">
+    Your career summary is crucial for AI analysis. Include your expertise areas, years of experience, and career goals.
+  </Accordion>
+  
+  <Accordion title="Re-analyze After Profile Updates">
+    After adding new experience or skills, re-analyze your saved jobs to see improved match scores.
+  </Accordion>
+  
+  <Accordion title="Focus on High-Match Jobs">
+    Prioritize applications for jobs with 70%+ match scores. These have the highest probability of success.
+  </Accordion>
+</AccordionGroup>
+
+## Error Handling
+
+Common errors and solutions:
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| **Profile Incomplete** | Missing required profile fields | Complete your profile with career summary, skills, and experience |
+| **Profile Summary Required** | Career summary is empty or too short | Add a detailed career summary (50+ characters) |
+| **AI Service Unavailable** | Temporary AI service issue | Try again in a few moments |
+| **Quota Exceeded** | Monthly quota limit reached | Wait for monthly reset or upgrade your plan |
+| **Timeout** | Analysis took too long | Try again; contact support if issue persists |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Profile Management" icon="user" href="/features/profile-management">
+    Learn how to build a comprehensive profile for accurate matching.
+  </Card>
+  
+  <Card title="Document Generation" icon="file-pdf" href="/features/document-generation">
+    Generate tailored CVs and cover letters based on match analysis.
+  </Card>
+</CardGroup>

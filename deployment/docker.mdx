@@ -1,0 +1,337 @@
+---
+title: 'Docker Deployment'
+description: 'Deploy Vega AI using Docker'
+---
+
+## Overview
+
+The simplest way to deploy Vega AI is using Docker. The official Docker images are hosted on GitHub Container Registry and support both AMD64 and ARM64 architectures (including Apple Silicon).
+
+## Prerequisites
+
+- Docker Engine 20.10 or later
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+
+## Quick Start
+
+<Steps>
+  <Step title="Get your API key">
+    Get your [free Gemini API key](https://aistudio.google.com/app/apikey) from Google AI Studio.
+  </Step>
+
+  <Step title="Create configuration file">
+    Create a directory for Vega AI and a configuration file:
+
+    ```bash
+    # Create a directory for Vega AI
+    mkdir vega-ai && cd vega-ai
+
+    # Create a config file with your Gemini API key
+    echo "GEMINI_API_KEY=your-gemini-api-key" > config
+    ```
+  </Step>
+
+  <Step title="Run the container">
+    Start Vega AI with a single command:
+
+    ```bash
+    docker run --pull always -d \
+      --name vega-ai \
+      -p 8765:8765 \
+      -v vega-data:/app/data \
+      --env-file config \
+      ghcr.io/benidevo/vega-ai:latest
+    ```
+  </Step>
+
+  <Step title="Access the application">
+    1. Visit [http://localhost:8765](http://localhost:8765)
+    2. Log in with default credentials:
+       - Username: `admin`
+       - Password: `VegaAdmin`
+    3. **Important:** Change your password after first login via Settings → Account
+  </Step>
+</Steps>
+
+## Docker Image Details
+
+### Multi-Architecture Support
+
+The Docker images support both AMD64 and ARM64 architectures:
+
+```bash
+# Works on both Intel/AMD and ARM processors (including Apple Silicon)
+docker pull ghcr.io/benidevo/vega-ai:latest
+```
+
+### Image Tags
+
+- `latest` - Latest stable release
+- `v*.*.*` - Specific version tags (e.g., `v1.0.0`)
+- `main` - Latest development build from the main branch
+
+## Configuration
+
+### Minimal Configuration
+
+Only the `GEMINI_API_KEY` is required:
+
+```bash config
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### Recommended Configuration
+
+For production deployments, also set a custom JWT token secret:
+
+```bash config
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-super-secret-jwt-key-here
+```
+
+<Note>
+  Generate a secure token secret using: `openssl rand -base64 32`
+</Note>
+
+### Custom Admin Credentials
+
+Override default admin credentials:
+
+```bash config
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-super-secret-jwt-key-here
+ADMIN_USERNAME=myadmin
+ADMIN_PASSWORD=MySecurePassword123
+```
+
+## Docker Run Options
+
+### Basic Deployment
+
+```bash
+docker run -d \
+  --name vega-ai \
+  -p 8765:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+### Custom Port
+
+```bash
+docker run -d \
+  --name vega-ai \
+  -p 3000:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+Access at [http://localhost:3000](http://localhost:3000)
+
+### Custom Data Directory
+
+Use a bind mount instead of a named volume:
+
+```bash
+docker run -d \
+  --name vega-ai \
+  -p 8765:8765 \
+  -v /path/to/data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+### With Restart Policy
+
+```bash
+docker run -d \
+  --name vega-ai \
+  --restart unless-stopped \
+  -p 8765:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+## Container Management
+
+### View Logs
+
+```bash
+# Follow logs in real-time
+docker logs -f vega-ai
+
+# View last 100 lines
+docker logs --tail 100 vega-ai
+```
+
+### Stop Container
+
+```bash
+docker stop vega-ai
+```
+
+### Start Container
+
+```bash
+docker start vega-ai
+```
+
+### Restart Container
+
+```bash
+docker restart vega-ai
+```
+
+### Remove Container
+
+```bash
+# Stop and remove
+docker stop vega-ai
+docker rm vega-ai
+```
+
+### Update to Latest Version
+
+```bash
+# Pull latest image
+docker pull ghcr.io/benidevo/vega-ai:latest
+
+# Stop and remove old container
+docker stop vega-ai
+docker rm vega-ai
+
+# Start new container with same configuration
+docker run -d \
+  --name vega-ai \
+  --restart unless-stopped \
+  -p 8765:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+<Note>
+  Your data persists in the `vega-data` volume, so updates won't affect your data.
+</Note>
+
+## Data Persistence
+
+Vega AI stores all data in `/app/data` inside the container:
+
+- **Database**: `/app/data/vega.db` (SQLite with WAL mode)
+- **Cache**: `/app/data/cache/` (temporary AI generation cache)
+
+<Warning>
+  Always mount a volume to `/app/data` to persist your data across container restarts and updates.
+</Warning>
+
+## Backup and Restore
+
+### Backup Data
+
+```bash
+# Create backup directory
+mkdir -p backups
+
+# Copy data from container
+docker cp vega-ai:/app/data/vega.db backups/vega-$(date +%Y%m%d).db
+```
+
+Or with named volume:
+
+```bash
+# Create a temporary container to access the volume
+docker run --rm \
+  -v vega-data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  cp /data/vega.db /backup/vega-$(date +%Y%m%d).db
+```
+
+### Restore Data
+
+```bash
+# Stop the container
+docker stop vega-ai
+
+# Copy backup to volume
+docker run --rm \
+  -v vega-data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  cp /backup/vega-20260305.db /data/vega.db
+
+# Start the container
+docker start vega-ai
+```
+
+## Troubleshooting
+
+### Container Won't Start
+
+1. Check logs for errors:
+   ```bash
+   docker logs vega-ai
+   ```
+
+2. Verify environment variables:
+   ```bash
+   docker inspect vega-ai | grep -A 10 Env
+   ```
+
+3. Check if port is already in use:
+   ```bash
+   netstat -tulpn | grep 8765
+   ```
+
+### Permission Issues
+
+The container runs as a non-root user (UID 1001). If using bind mounts, ensure proper permissions:
+
+```bash
+sudo chown -R 1001:1001 /path/to/data
+```
+
+### Database Locked Errors
+
+If you see "database is locked" errors:
+
+1. Stop the container
+2. Check for stale lock files:
+   ```bash
+   docker run --rm -v vega-data:/data alpine ls -la /data/
+   ```
+3. Remove any `.db-shm` or `.db-wal` files if corrupted
+4. Restart the container
+
+## Health Checks
+
+Check if Vega AI is running properly:
+
+```bash
+# Check container status
+docker ps | grep vega-ai
+
+# Check application health (if health endpoint exists)
+curl http://localhost:8765/
+
+# Monitor resource usage
+docker stats vega-ai
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Compose" icon="layer-group" href="/deployment/docker-compose">
+    Use Docker Compose for easier management
+  </Card>
+  <Card title="Environment Variables" icon="sliders" href="/deployment/environment-variables">
+    Complete environment variable reference
+  </Card>
+  <Card title="Docker Swarm" icon="server" href="/deployment/docker-swarm">
+    Deploy in Docker Swarm mode for high availability
+  </Card>
+</CardGroup>

@@ -1,0 +1,505 @@
+---
+title: 'Document Generation'
+description: 'Generate tailored CVs and cover letters for each job application using AI'
+icon: 'file-pdf'
+---
+
+## Overview
+
+Vega AI automatically generates professional, job-specific CVs and cover letters based on your profile and the target job posting. Each document is tailored to highlight relevant experience, skills, and qualifications that match the position requirements.
+
+<Note>
+  Document generation uses AI to create customized content that emphasizes your most relevant qualifications for each specific job application.
+</Note>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Tailored CVs" icon="file-user">
+    AI-generated CVs that emphasize relevant experience and skills for the target position.
+  </Card>
+  
+  <Card title="Custom Cover Letters" icon="file-lines">
+    Personalized cover letters that address the specific job requirements and company.
+  </Card>
+  
+  <Card title="PDF Export" icon="file-pdf">
+    Download documents as professional PDF files ready for submission.
+  </Card>
+  
+  <Card title="Multiple Formats" icon="code">
+    Documents available in HTML, Markdown, and plain text formats.
+  </Card>
+</CardGroup>
+
+## CV Generation
+
+### How It Works
+
+<Steps>
+  <Step title="Profile Analysis">
+    The AI analyzes your complete profile including work experience, education, skills, and certifications.
+  </Step>
+  
+  <Step title="Job Requirements">
+    The system extracts key requirements, skills, and qualifications from the job description.
+  </Step>
+  
+  <Step title="Content Optimization">
+    Your profile information is restructured and optimized to highlight the most relevant qualifications for the job.
+  </Step>
+  
+  <Step title="Document Generation">
+    A professionally formatted CV is generated with emphasis on matching qualifications.
+  </Step>
+</Steps>
+
+### Generated CV Structure
+
+AI-generated CVs include:
+
+```go
+type GeneratedCV struct {
+    PersonalInfo   PersonalInfo     `json:"personalInfo"`
+    WorkExperience []WorkExperience `json:"workExperience"`
+    Education      []Education      `json:"education"`
+    Certifications []Certification  `json:"certifications"`
+    Skills         []string         `json:"skills"`
+    GeneratedAt    int64           `json:"generatedAt"`
+    JobID          int             `json:"jobId"`
+    JobTitle       string          `json:"jobTitle"`
+}
+```
+
+### Personal Information
+
+Your CV header includes:
+
+```go
+type PersonalInfo struct {
+    FirstName string `json:"firstName"`
+    LastName  string `json:"lastName"`
+    Email     string `json:"email"`
+    Phone     string `json:"phone"`
+    Location  string `json:"location"`
+    LinkedIn  string `json:"linkedin"`
+    Title     string `json:"title"`
+    Summary   string `json:"summary"`
+}
+```
+
+### Work Experience
+
+Each work entry includes:
+
+- **Company name** and **location**
+- **Job title** and **dates** (start/end or "Present")
+- **Description** highlighting relevant achievements
+- Emphasis on skills and experience matching the target job
+
+```go
+type WorkExperience struct {
+    Company     string `json:"company"`
+    Title       string `json:"title"`
+    Location    string `json:"location"`
+    StartDate   string `json:"startDate"`     // "YYYY-MM" or "YYYY"
+    EndDate     string `json:"endDate"`       // "YYYY-MM", "YYYY", or "Present"
+    Description string `json:"description"`
+}
+```
+
+### Education
+
+Education entries include:
+
+- **Institution** name
+- **Degree** and **field of study**
+- **Dates** attended
+- Relevant coursework or achievements
+
+```go
+type Education struct {
+    Institution  string `json:"institution"`
+    Degree       string `json:"degree"`
+    FieldOfStudy string `json:"fieldOfStudy"`
+    StartDate    string `json:"startDate"`
+    EndDate      string `json:"endDate"`
+}
+```
+
+### Skills Section
+
+The skills section is intelligently organized:
+
+- **Prioritized skills** that match job requirements appear first
+- Skills are grouped by category (technical, soft skills, tools, etc.)
+- Relevant keywords from the job description are emphasized
+
+### Certifications
+
+Professional certifications include:
+
+```go
+type Certification struct {
+    Name          string `json:"name"`
+    IssuingOrg    string `json:"issuingOrg"`
+    IssueDate     string `json:"issueDate"`
+    ExpiryDate    string `json:"expiryDate"`
+    CredentialID  string `json:"credentialId"`
+    CredentialURL string `json:"credentialUrl"`
+}
+```
+
+## Cover Letter Generation
+
+### How It Works
+
+<Steps>
+  <Step title="Context Gathering">
+    The AI gathers context about you (profile), the company, and the position.
+  </Step>
+  
+  <Step title="Match Analysis">
+    If available, previous match analysis results inform the letter's focus.
+  </Step>
+  
+  <Step title="Letter Composition">
+    A professional cover letter is composed with appropriate tone and structure.
+  </Step>
+  
+  <Step title="Format Selection">
+    The letter is formatted in your chosen format (HTML, Markdown, or plain text).
+  </Step>
+</Steps>
+
+### Cover Letter Structure
+
+Generated cover letters follow professional standards:
+
+```go
+type CoverLetter struct {
+    Format  CoverLetterFormat `json:"format"`   // "html", "markdown", or "plain_text"
+    Content string            `json:"content"`
+}
+```
+
+#### Letter Components
+
+<Tabs>
+  <Tab title="Opening">
+    - Professional greeting
+    - Position you're applying for
+    - How you learned about the opportunity
+    - Brief introduction of your background
+  </Tab>
+  
+  <Tab title="Body Paragraphs">
+    - **First paragraph**: Your relevant experience and how it matches the role
+    - **Second paragraph**: Specific skills and achievements that address job requirements
+    - **Third paragraph**: Your interest in the company and why you're a great fit
+  </Tab>
+  
+  <Tab title="Closing">
+    - Summary of your value proposition
+    - Call to action (request for interview)
+    - Professional closing and signature
+  </Tab>
+</Tabs>
+
+### Cover Letter Formats
+
+<CardGroup cols={3}>
+  <Card title="Plain Text" icon="text">
+    Clean, ATS-friendly format for online applications.
+  </Card>
+  
+  <Card title="HTML" icon="code">
+    Formatted version for email or web-based submissions.
+  </Card>
+  
+  <Card title="Markdown" icon="markdown">
+    Versatile format that can be easily converted to other formats.
+  </Card>
+</CardGroup>
+
+## Generating Documents
+
+### CV Generation Steps
+
+<Steps>
+  <Step title="Navigate to Job Details">
+    Open the job you want to generate a CV for.
+  </Step>
+  
+  <Step title="Click Generate CV">
+    Click the "Generate CV" button in the AI tools section.
+  </Step>
+  
+  <Step title="Wait for Generation">
+    The AI processes your profile and job description (15-30 seconds).
+  </Step>
+  
+  <Step title="Review CV">
+    Review the generated CV content on screen.
+  </Step>
+  
+  <Step title="Download PDF">
+    Click "Download as PDF" to save the CV to your device.
+  </Step>
+</Steps>
+
+### Cover Letter Generation Steps
+
+<Steps>
+  <Step title="Navigate to Job Details">
+    Open the job you want to generate a cover letter for.
+  </Step>
+  
+  <Step title="Click Generate Cover Letter">
+    Click the "Generate Cover Letter" button.
+  </Step>
+  
+  <Step title="Wait for Generation">
+    The AI composes your cover letter (15-30 seconds).
+  </Step>
+  
+  <Step title="Review Content">
+    Read through the generated letter and verify accuracy.
+  </Step>
+  
+  <Step title="Download or Copy">
+    Download as PDF or copy the text for use in applications.
+  </Step>
+</Steps>
+
+<Warning>
+  Document generation requires a complete profile. Ensure you have work experience or education entries, skills, and a career summary before generating documents.
+</Warning>
+
+## PDF Export
+
+Vega AI generates professional PDF documents:
+
+### PDF Features
+
+<CardGroup cols={2}>
+  <Card title="Professional Formatting" icon="brush">
+    Clean, professional layout optimized for readability.
+  </Card>
+  
+  <Card title="ATS-Friendly" icon="robot">
+    Compatible with Applicant Tracking Systems used by employers.
+  </Card>
+  
+  <Card title="Custom Naming" icon="tag">
+    Files automatically named: `FirstName_LastName_CV_CompanyName.pdf`
+  </Card>
+  
+  <Card title="Print-Ready" icon="print">
+    Properly formatted for printing on standard letter/A4 paper.
+  </Card>
+</CardGroup>
+
+### PDF Generation Process
+
+The system uses client-side PDF generation:
+
+```javascript
+// PDF is generated in the browser using jsPDF and html2canvas
+// This ensures no sensitive data is sent to external services
+const generatePDF = async (documentId, fileName) => {
+    const element = document.getElementById(documentId);
+    const canvas = await html2canvas(element);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.addImage(canvas, 'PNG', 0, 0, 210, 297);
+    pdf.save(fileName);
+};
+```
+
+## CV Parsing
+
+Vega AI can also parse existing CVs to populate your profile:
+
+### Upload and Parse
+
+<Steps>
+  <Step title="Navigate to Profile">
+    Go to your profile settings page.
+  </Step>
+  
+  <Step title="Upload CV">
+    Click "Upload CV" and select your resume file.
+  </Step>
+  
+  <Step title="AI Extraction">
+    The AI extracts structured information from your CV.
+  </Step>
+  
+  <Step title="Review and Confirm">
+    Review extracted data and confirm or edit as needed.
+  </Step>
+  
+  <Step title="Save to Profile">
+    Click "Save" to populate your profile with the extracted information.
+  </Step>
+</Steps>
+
+### Parsing Validation
+
+```go
+type CVParsingResult struct {
+    IsValid        bool             `json:"isValid"`
+    Reason         string           `json:"reason"`
+    PersonalInfo   PersonalInfo     `json:"personalInfo"`
+    WorkExperience []WorkExperience `json:"workExperience"`
+    Education      []Education      `json:"education"`
+    Certifications []Certification  `json:"certifications"`
+    Skills         []string         `json:"skills"`
+}
+```
+
+The system validates parsed CVs:
+
+```go
+func (c *CVGeneratorService) validateGeneratedCV(cv *CVParsingResult) error {
+    if !cv.IsValid {
+        return fmt.Errorf("generated CV is not valid: %s", cv.Reason)
+    }
+    
+    if cv.PersonalInfo.FirstName == "" || cv.PersonalInfo.LastName == "" {
+        return fmt.Errorf("missing required personal information")
+    }
+    
+    if len(cv.WorkExperience) == 0 && len(cv.Education) == 0 {
+        return fmt.Errorf("must have at least work experience or education")
+    }
+    
+    return nil
+}
+```
+
+## AI Processing Details
+
+### Generation Timeout
+
+Both CV and cover letter generation have 30-second timeouts:
+
+```go
+// Add timeout to prevent indefinite waiting
+aiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+defer cancel()
+
+response, err := c.model.Generate(aiCtx, llm.GenerateRequest{
+    Prompt:       *prompt,
+    ResponseType: llm.ResponseTypeCV,
+})
+```
+
+### Temperature Settings
+
+Document generation uses lower temperature for consistency:
+
+```go
+// Use basic prompting for CV generation to reduce processing time
+// Enhanced templates are too complex for the large JSON output required
+prompt := models.NewPrompt(
+    "You are a professional career advisor and expert CV writer.",
+    req,
+    false, // Use basic template for faster processing
+)
+
+optimalTemp := prompt.GetOptimalTemperature(string(models.TaskTypeCVGeneration))
+prompt.SetTemperature(optimalTemp)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Complete Your Profile First">
+    Ensure your profile is comprehensive with detailed work experience, education, skills, and certifications before generating documents.
+  </Accordion>
+  
+  <Accordion title="Review and Customize">
+    Always review generated documents before submission. Add personal touches and verify accuracy.
+  </Accordion>
+  
+  <Accordion title="Tailor for Each Job">
+    Generate a new CV and cover letter for each application. Generic documents are less effective.
+  </Accordion>
+  
+  <Accordion title="Keep Skills Updated">
+    Regularly update your skills list to ensure generated documents reflect your current capabilities.
+  </Accordion>
+  
+  <Accordion title="Check Company Names">
+    Verify that company names and job titles are spelled correctly in your applications.
+  </Accordion>
+  
+  <Accordion title="Proofread Everything">
+    While AI-generated content is high quality, always proofread for context and accuracy.
+  </Accordion>
+</AccordionGroup>
+
+## Document Quality Tips
+
+### For Better CVs
+
+<CardGroup cols={2}>
+  <Card title="Use Action Verbs" icon="bolt">
+    Ensure your profile descriptions use strong action verbs that the AI will incorporate.
+  </Card>
+  
+  <Card title="Quantify Achievements" icon="chart-simple">
+    Include numbers and metrics in your profile to create more impactful CVs.
+  </Card>
+  
+  <Card title="Focus on Relevance" icon="bullseye">
+    The AI prioritizes relevant experience, so keep your profile focused and current.
+  </Card>
+  
+  <Card title="Complete Entries" icon="check-double">
+    Fill in all fields for work experience and education for comprehensive CVs.
+  </Card>
+</CardGroup>
+
+### For Better Cover Letters
+
+<CardGroup cols={2}>
+  <Card title="Strong Career Summary" icon="pen-fancy">
+    Your career summary heavily influences cover letter quality.
+  </Card>
+  
+  <Card title="Company Research" icon="magnifying-glass">
+    Add notes about the company to help the AI write more targeted letters.
+  </Card>
+  
+  <Card title="Highlight Achievements" icon="trophy">
+    Include notable achievements in your profile for the AI to reference.
+  </Card>
+  
+  <Card title="Cultural Fit" icon="users">
+    Mention values and work style in your profile for better alignment.
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| **Profile Incomplete** | Missing required fields | Complete work experience, education, and skills |
+| **Validation Failed** | Generated document missing required info | Update profile and regenerate |
+| **AI Service Unavailable** | Temporary service issue | Try again in a few moments |
+| **Timeout** | Generation took too long | Retry; contact support if persists |
+| **Empty Content** | AI failed to generate content | Check profile completeness and retry |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Profile Management" icon="user" href="/features/profile-management">
+    Build a comprehensive profile for high-quality document generation.
+  </Card>
+  
+  <Card title="Job Tracking" icon="briefcase" href="/features/job-tracking">
+    Track which documents you've generated for each application.
+  </Card>
+</CardGroup>

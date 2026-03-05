@@ -1,0 +1,253 @@
+---
+title: Browser Extension
+description: Install and use the Vega AI Browser Extension to capture jobs from LinkedIn and other job boards with one click
+icon: puzzle-piece
+---
+
+The **Vega AI Job Capture** browser extension allows you to capture job listings from LinkedIn and other job boards directly into your Vega AI dashboard with a single click.
+
+## Features
+
+- **One-Click Job Capture**: Save job listings instantly while browsing
+- **LinkedIn Integration**: Seamlessly capture jobs from LinkedIn job postings
+- **Automatic Data Extraction**: Extracts job title, company, location, description, and more
+- **Cross-Browser Support**: Works with Chrome and Chromium-based browsers
+- **Self-Hosted Compatible**: Works with both cloud and self-hosted Vega AI instances
+
+## Installation
+
+<Steps>
+  <Step title="Download the Extension">
+    Download the latest `.zip` file from the [GitHub Releases page](https://github.com/benidevo/vega-ai-extension/releases/latest).
+  </Step>
+
+  <Step title="Extract the Files">
+    Extract the ZIP file to a permanent folder on your computer. Do not delete this folder after installation.
+    
+    ```bash
+    # Example: Extract to a permanent location
+    mkdir -p ~/browser-extensions/vega-ai
+    unzip vega-ai-extension-v1.0.0.zip -d ~/browser-extensions/vega-ai
+    ```
+  </Step>
+
+  <Step title="Open Chrome Extensions">
+    1. Open Chrome (or any Chromium-based browser)
+    2. Navigate to `chrome://extensions/`
+    3. Or click the menu (⋮) → More Tools → Extensions
+  </Step>
+
+  <Step title="Enable Developer Mode">
+    Toggle "Developer mode" in the top right corner of the Extensions page.
+    
+    <Note>
+      Developer mode is required to load unpacked extensions. This is safe for local extensions.
+    </Note>
+  </Step>
+
+  <Step title="Load the Extension">
+    1. Click the "Load unpacked" button
+    2. Navigate to and select the extracted folder
+    3. The Vega AI extension should now appear in your extensions list
+  </Step>
+</Steps>
+
+## Configuration
+
+### Connecting to Your Vega AI Instance
+
+After installation, you need to configure the extension to connect to your Vega AI instance:
+
+<Steps>
+  <Step title="Open Extension Settings">
+    Click the Vega AI extension icon in your browser toolbar and select "Settings" or "Options".
+  </Step>
+
+  <Step title="Enter Your Instance URL">
+    Configure the connection based on your deployment:
+    
+    **For Cloud Users:**
+    ```
+    https://vega.benidevo.com
+    ```
+    
+    **For Self-Hosted Users:**
+    ```
+    http://localhost:8765
+    ```
+    
+    Or your custom domain:
+    ```
+    https://vega.yourdomain.com
+    ```
+  </Step>
+
+  <Step title="Authenticate">
+    The extension will prompt you to log in to your Vega AI account. Use the same credentials you use to access the web interface.
+  </Step>
+</Steps>
+
+<Warning>
+  Make sure your Vega AI instance is running and accessible from your browser. For self-hosted instances, ensure the server is started and listening on the correct port.
+</Warning>
+
+## Usage
+
+### Capturing Jobs from LinkedIn
+
+<Steps>
+  <Step title="Navigate to a Job Posting">
+    Go to any LinkedIn job posting page. The extension will automatically detect the job listing.
+  </Step>
+
+  <Step title="Click the Extension Icon">
+    Click the Vega AI extension icon in your browser toolbar. The extension will display the detected job information.
+  </Step>
+
+  <Step title="Review and Save">
+    Review the captured information and click "Save to Vega AI" to add the job to your dashboard.
+    
+    The extension captures:
+    - Job title
+    - Company name
+    - Location
+    - Job description
+    - Required skills
+    - Salary information (if available)
+    - Application link
+  </Step>
+</Steps>
+
+### Capturing Jobs from Other Platforms
+
+The extension also works with other job boards:
+
+- Indeed
+- Glassdoor
+- Monster
+- General job posting pages
+
+<Note>
+  For non-LinkedIn sites, the extension uses intelligent parsing to extract job details. Accuracy may vary depending on the site's structure.
+</Note>
+
+## Troubleshooting
+
+### Extension Not Detecting Jobs
+
+**Problem**: The extension icon remains gray or doesn't detect the job posting.
+
+**Solutions**:
+- Refresh the job posting page
+- Make sure you're on an actual job posting page (not search results)
+- Check that the extension is enabled in `chrome://extensions/`
+- Try clicking directly on the extension icon to manually trigger detection
+
+### Connection Failed
+
+**Problem**: "Unable to connect to Vega AI" error.
+
+**Solutions**:
+1. **Check your instance URL** in extension settings
+2. **Verify your Vega AI instance is running**:
+   ```bash
+   # For Docker users
+   docker ps | grep vega-ai
+   
+   # Check if the web interface is accessible
+   curl http://localhost:8765
+   ```
+3. **Check CORS settings** (for self-hosted instances):
+   ```bash
+   # Add your browser extension to allowed origins
+   CORS_ALLOWED_ORIGINS=chrome-extension://*,http://localhost:8765
+   ```
+
+### Authentication Issues
+
+**Problem**: Extension can't authenticate or keeps asking to log in.
+
+**Solutions**:
+- Clear the extension's stored data and re-authenticate
+- Log out and log back in to the Vega AI web interface
+- Check that your session hasn't expired
+- For self-hosted: verify TOKEN_SECRET is configured correctly
+
+### Data Not Syncing
+
+**Problem**: Jobs saved in the extension don't appear in the web dashboard.
+
+**Solutions**:
+- Refresh the Vega AI web dashboard
+- Check your internet connection
+- Verify you're logged into the same account in both places
+- Check browser console for error messages (F12 → Console)
+
+## CORS Configuration for Self-Hosted
+
+If you're running a self-hosted instance, you may need to configure CORS to allow the browser extension to connect:
+
+<CodeGroup>
+```bash Docker
+# Add to your docker run command or docker-compose.yml
+CORS_ALLOWED_ORIGINS=chrome-extension://*,http://localhost:8765
+CORS_ALLOW_CREDENTIALS=true
+```
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    environment:
+      - CORS_ALLOWED_ORIGINS=chrome-extension://*,http://localhost:8765
+      - CORS_ALLOW_CREDENTIALS=true
+```
+
+```bash .env
+CORS_ALLOWED_ORIGINS=chrome-extension://*,http://localhost:8765
+CORS_ALLOW_CREDENTIALS=true
+```
+</CodeGroup>
+
+## Building from Source
+
+Developers can build the extension from source:
+
+```bash
+# Clone the extension repository
+git clone https://github.com/benidevo/vega-ai-extension.git
+cd vega-ai-extension
+
+# Install dependencies
+npm install
+
+# Build the extension
+npm run build
+
+# The built extension will be in the dist/ directory
+```
+
+For development and contribution guidelines, visit the [extension repository](https://github.com/benidevo/vega-ai-extension).
+
+## Privacy & Security
+
+<Note>
+  The Vega AI browser extension only communicates with your configured Vega AI instance. No job data is sent to third-party services.
+</Note>
+
+- **Data stays with you**: All captured job data is sent directly to your Vega AI instance
+- **No tracking**: The extension doesn't track your browsing activity
+- **Open source**: The extension code is publicly available for review
+- **Secure authentication**: Uses the same secure token-based authentication as the web interface
+
+## Updates
+
+Since this is a manually installed extension, you'll need to update it manually:
+
+1. Download the latest version from [GitHub Releases](https://github.com/benidevo/vega-ai-extension/releases/latest)
+2. Extract to the same location (overwriting old files)
+3. Go to `chrome://extensions/` and click the refresh icon on the Vega AI extension
+
+<Note>
+  Subscribe to the [GitHub repository](https://github.com/benidevo/vega-ai-extension) to get notified of new releases.
+</Note>

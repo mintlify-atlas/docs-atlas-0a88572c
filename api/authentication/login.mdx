@@ -1,0 +1,226 @@
+---
+title: 'Login'
+description: 'Authenticate users with username and password'
+---
+
+## Endpoint
+
+```http
+POST /api/auth/login
+```
+
+Authenticates a user with their username and password credentials. Returns JWT access and refresh tokens upon successful authentication.
+
+## Request Body
+
+<ParamField body="username" type="string" required>
+  The user's username. Must be between 3-50 characters.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The user's password. Must be at least 8 characters.
+</ParamField>
+
+## Response
+
+<ResponseField name="token" type="string">
+  JWT access token used to authenticate API requests. This token is short-lived and should be included in the `Authorization` header as `Bearer {token}`.
+</ResponseField>
+
+<ResponseField name="refresh_token" type="string">
+  JWT refresh token used to obtain new access tokens when they expire. Store this securely as it is long-lived.
+</ResponseField>
+
+<ResponseField name="expires_at" type="integer">
+  Unix timestamp (seconds since epoch) indicating when the access token expires.
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.vega.ai/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john.doe@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.vega.ai/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    username: 'john.doe@example.com',
+    password: 'securePassword123',
+  }),
+});
+
+const data = await response.json();
+console.log('Access token:', data.token);
+```
+
+```python Python
+import requests
+
+url = 'https://api.vega.ai/api/auth/login'
+data = {
+    'username': 'john.doe@example.com',
+    'password': 'securePassword123'
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+print(f"Access token: {result['token']}")
+```
+
+```go Go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+type LoginRequest struct {
+    Username string `json:"username"`
+    Password string `json:"password"`
+}
+
+type LoginResponse struct {
+    Token        string `json:"token"`
+    RefreshToken string `json:"refresh_token"`
+    ExpiresAt    int64  `json:"expires_at"`
+}
+
+func main() {
+    reqBody := LoginRequest{
+        Username: "john.doe@example.com",
+        Password: "securePassword123",
+    }
+    
+    jsonData, _ := json.Marshal(reqBody)
+    resp, _ := http.Post(
+        "https://api.vega.ai/api/auth/login",
+        "application/json",
+        bytes.NewBuffer(jsonData),
+    )
+    
+    var result LoginResponse
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Printf("Access token: %s\n", result.Token)
+}
+```
+
+</CodeGroup>
+
+## Example Response
+
+```json 200 OK
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6IlNUQU5EQVJEIiwidG9rZW5fdHlwZSI6ImFjY2VzcyIsImlzcyI6IlZlZ2EgQUkiLCJzdWIiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImlhdCI6MTcwOTgzMjAwMCwiZXhwIjoxNzA5ODM1NjAwfQ.example_signature",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6IlNUQU5EQVJEIiwidG9rZW5fdHlwZSI6InJlZnJlc2giLCJpc3MiOiJWZWdhIEFJIiwic3ViIjoiam9obi5kb2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3MDk4MzIwMDAsImV4cCI6MTcxMDQzNjgwMH0.example_signature",
+  "expires_at": 1709835600
+}
+```
+
+```json 400 Bad Request
+{
+  "error": "invalid request body"
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": "invalid username or password"
+}
+```
+
+## Implementation Details
+
+The login endpoint performs the following operations (see `internal/api/auth/handlers.go:86`):
+
+1. **Request Validation** - Validates that username and password are provided
+2. **Credential Verification** - Looks up the user and verifies the password using bcrypt
+3. **Token Generation** - Generates JWT access and refresh tokens with appropriate expiry times
+4. **Last Login Update** - Updates the user's last login timestamp
+5. **Response** - Returns both tokens and expiration time
+
+<Note>
+  **Security**: Failed login attempts are logged for security monitoring. The endpoint is protected by rate limiting to prevent brute force attacks.
+</Note>
+
+## Token Claims
+
+The access token JWT contains the following claims:
+
+```json
+{
+  "user_id": 1,
+  "username": "john.doe@example.com",
+  "role": "STANDARD",
+  "token_type": "access",
+  "iss": "Vega AI",
+  "sub": "john.doe@example.com",
+  "iat": 1709832000,
+  "exp": 1709835600
+}
+```
+
+<ParamField body="user_id" type="integer">
+  Unique identifier for the user
+</ParamField>
+
+<ParamField body="username" type="string">
+  The user's username (typically email)
+</ParamField>
+
+<ParamField body="role" type="string">
+  User role: either `ADMIN` or `STANDARD`
+</ParamField>
+
+<ParamField body="token_type" type="string">
+  Token type: `access` for access tokens, `refresh` for refresh tokens
+</ParamField>
+
+<ParamField body="iss" type="string">
+  Token issuer (application name)
+</ParamField>
+
+<ParamField body="sub" type="string">
+  Token subject (username)
+</ParamField>
+
+<ParamField body="iat" type="integer">
+  Issued at timestamp (Unix epoch)
+</ParamField>
+
+<ParamField body="exp" type="integer">
+  Expiration timestamp (Unix epoch)
+</ParamField>
+
+## Using the Token
+
+Once authenticated, include the access token in subsequent API requests:
+
+```bash
+curl -X GET https://api.vega.ai/api/jobs \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Refresh Token" icon="arrows-rotate" href="/api/authentication/refresh-token">
+    Learn how to refresh expired access tokens
+  </Card>
+  <Card title="Google OAuth" icon="google" href="/api/authentication/google-oauth">
+    Alternative authentication using Google
+  </Card>
+</CardGroup>

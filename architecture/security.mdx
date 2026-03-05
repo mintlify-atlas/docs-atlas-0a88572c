@@ -1,0 +1,668 @@
+---
+title: Security Architecture
+description: Comprehensive overview of Vega AI's security architecture, authentication, data protection, and privacy practices
+---
+
+## Security Overview
+
+Vega AI is built with **security and privacy as core principles**. The application implements multiple layers of security including authentication, authorization, data encryption, GDPR-compliant logging, and multi-tenant data isolation.
+
+## Authentication & Authorization
+
+### JWT-Based Authentication
+
+Vega AI uses **JSON Web Tokens (JWT)** for stateless authentication:
+
+<CardGroup cols={2}>
+  <Card title="Access Tokens" icon="key">
+    Short-lived (60 min) tokens for API authentication
+  </Card>
+  <Card title="Refresh Tokens" icon="rotate">
+    Long-lived (72 hours) tokens for renewing access
+  </Card>
+  <Card title="Secure Storage" icon="cookie">
+    HTTP-only cookies prevent XSS attacks
+  </Card>
+  <Card title="HMAC-SHA256" icon="shield">
+    Cryptographically signed tokens
+  </Card>
+</CardGroup>
+
+### Token Structure
+
+```go
+type Claims struct {
+    UserID    int    `json:"user_id"`
+    Username  string `json:"username"`
+    Role      string `json:"role"`      // "user" or "admin"
+    TokenType string `json:"token_type"` // "access" or "refresh"
+    jwt.RegisteredClaims
+}
+
+func (s *AuthService) GenerateTokenPair(user *models.User) (*TokenPair, error) {
+    accessClaims := &Claims{
+        UserID:    user.ID,
+        Username:  user.Username,
+        Role:      user.Role,
+        TokenType: "access",
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.config.AccessTokenExpiry)),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+            Issuer:    "vega-ai",
+        },
+    }
+
+    accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+    accessTokenString, err := accessToken.SignedString([]byte(s.config.TokenSecret))
+    // ...
+}
+```
+
+### Token Storage
+
+**Secure Cookie Configuration:**
+
+```go
+http.SetCookie(w, &http.Cookie{
+    Name:     "access_token",
+    Value:    accessToken,
+    Path:     "/",
+    Domain:   config.CookieDomain,
+    MaxAge:   int(config.AccessTokenExpiry.Seconds()),
+    Secure:   config.CookieSecure,   // HTTPS only in production
+    HttpOnly: true,                   // Prevent JavaScript access
+    SameSite: http.SameSiteLaxMode,   // CSRF protection
+})
+```
+
+### Middleware Authentication
+
+#### Web Authentication Middleware
+
+```go
+func (h *AuthHandler) AuthMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        token, err := c.Cookie("access_token")
+        if err != nil {
+            c.Redirect(http.StatusFound, "/auth/login")
+            c.Abort()
+            return
+        }
+
+        claims, err := h.service.VerifyToken(token)
+        if err != nil {
+            c.Redirect(http.StatusFound, "/auth/login")
+            c.Abort()
+            return
+        }
+
+        // Inject user context
+        c.Set("userID", claims.UserID)
+        c.Set("username", claims.Username)
+        c.Set("role", claims.Role)
+        c.Next()
+    }
+}
+```
+
+#### API Authentication Middleware
+
+```go
+func (h *AuthHandler) APIAuthMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+            c.Abort()
+            return
+        }
+
+        parts := strings.Split(authHeader, " ")
+        if len(parts) != 2 || parts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header"})
+            c.Abort()
+            return
+        }
+
+        claims, err := h.service.VerifyToken(parts[1])
+        if err != nil || claims.TokenType != "access" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("userID", claims.UserID)
+        c.Next()
+    }
+}
+```
+
+## Google OAuth Integration
+
+Cloud mode requires Google OAuth for authentication:
+
+### OAuth Configuration
+
+```go
+import "golang.org/x/oauth2"
+import "golang.org/x/oauth2/google"
+
+oauthConfig := &oauth2.Config{
+    ClientID:     cfg.GoogleClientID,
+    ClientSecret: cfg.GoogleClientSecret,
+    RedirectURL:  cfg.GoogleClientRedirectURL,
+    Scopes: []string{
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+    },
+    Endpoint: google.Endpoint,
+}
+```
+
+### OAuth Flow
+
+<Steps>
+  <Step title="Initiate OAuth">
+    User clicks "Sign in with Google", redirected to Google consent screen
+    ```go
+    func (h *GoogleAuthHandler) InitiateLogin(c *gin.Context) {
+        state := generateRandomState()
+        c.SetCookie("oauth_state", state, 600, "/", "", true, true)
+        url := h.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+        c.Redirect(http.StatusTemporaryRedirect, url)
+    }
+    ```
+  </Step>
+  <Step title="OAuth Callback">
+    Google redirects back with authorization code
+    ```go
+    func (h *GoogleAuthHandler) HandleCallback(c *gin.Context) {
+        state, _ := c.Cookie("oauth_state")
+        if c.Query("state") != state {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state"})
+            return
+        }
+        // ...
+    }
+    ```
+  </Step>
+  <Step title="Token Exchange">
+    Exchange authorization code for access token
+    ```go
+    token, err := h.oauthConfig.Exchange(ctx, code)
+    if err != nil {
+        return nil, err
+    }
+    ```
+  </Step>
+  <Step title="Fetch User Info">
+    Retrieve user profile from Google
+    ```go
+    resp, err := http.Get("https://www.googleapis.com/oauth2/v3/userinfo?access_token=" + token.AccessToken)
+    // Parse user info and create/update user in database
+    ```
+  </Step>
+  <Step title="Issue JWT Tokens">
+    Create access and refresh tokens for the user
+    ```go
+    tokenPair, err := h.authService.GenerateTokenPair(user)
+    // Set secure cookies
+    ```
+  </Step>
+</Steps>
+
+## Password Security
+
+### Bcrypt Hashing
+
+Passwords are hashed using **bcrypt** with default cost (10):
+
+```go
+import "golang.org/x/crypto/bcrypt"
+
+func HashPassword(password string) (string, error) {
+    hash, err := bcrypt.GenerateFromPassword(
+        []byte(password), 
+        bcrypt.DefaultCost,
+    )
+    if err != nil {
+        return "", fmt.Errorf("failed to hash password: %w", err)
+    }
+    return string(hash), nil
+}
+
+func VerifyPassword(hashedPassword, password string) error {
+    return bcrypt.CompareHashAndPassword(
+        []byte(hashedPassword), 
+        []byte(password),
+    )
+}
+```
+
+**Security Features:**
+
+- Adaptive cost factor (increases over time)
+- Salt automatically generated per password
+- Timing-safe comparison prevents timing attacks
+- Resistant to rainbow table attacks
+
+### Rate Limiting
+
+Protects against brute-force attacks:
+
+```go
+type AuthRateLimiter struct {
+    limiter *rate.Limiter
+    mu      sync.Mutex
+}
+
+func NewAuthRateLimiter() *AuthRateLimiter {
+    // Allow 5 attempts per minute
+    return &AuthRateLimiter{
+        limiter: rate.NewLimiter(rate.Every(12*time.Second), 5),
+    }
+}
+
+func (rl *AuthRateLimiter) Allow() bool {
+    rl.mu.Lock()
+    defer rl.mu.Unlock()
+    return rl.limiter.Allow()
+}
+```
+
+## Multi-Tenant Data Isolation
+
+### Row-Level Security
+
+All queries automatically filtered by `user_id`:
+
+```go
+func (r *JobRepository) GetByID(ctx context.Context, userID int, id int) (*models.Job, error) {
+    sql, args, _ := sq.Select("*").
+        From("jobs").
+        Where(sq.Eq{
+            "user_id": userID, // Enforced at repository level
+            "id":      id,
+        }).
+        ToSql()
+
+    var job models.Job
+    err := r.db.QueryRowContext(ctx, sql, args...).Scan(&job)
+    if err == sql.ErrNoRows {
+        return nil, ErrJobNotFound // User cannot access other users' data
+    }
+    return &job, err
+}
+```
+
+### Repository Pattern Enforcement
+
+**Compile-time safety through interfaces:**
+
+```go
+type JobRepository interface {
+    Create(ctx context.Context, userID int, job *models.Job) error
+    GetByID(ctx context.Context, userID int, id int) (*models.Job, error)
+    Update(ctx context.Context, userID int, job *models.Job) error
+    Delete(ctx context.Context, userID int, id int) error
+    List(ctx context.Context, userID int, filters JobFilters) ([]*models.Job, error)
+}
+```
+
+**All methods require `userID` parameter**, preventing accidental cross-tenant data access.
+
+### Cache Isolation
+
+Cache keys prefixed with user ID:
+
+```go
+func (s *JobService) GetByID(ctx context.Context, userID int, id int) (*models.Job, error) {
+    cacheKey := fmt.Sprintf("job:u%d:%d", userID, id)
+
+    var job models.Job
+    if err := s.cache.Get(ctx, cacheKey, &job); err == nil {
+        return &job, nil
+    }
+
+    job, err := s.repo.GetByID(ctx, userID, id)
+    if err == nil {
+        s.cache.Set(ctx, cacheKey, job, time.Hour)
+    }
+    return job, err
+}
+```
+
+**Cache Invalidation:**
+
+```go
+func (s *JobService) Delete(ctx context.Context, userID int, id int) error {
+    if err := s.repo.Delete(ctx, userID, id); err != nil {
+        return err
+    }
+
+    // Invalidate specific job cache
+    cacheKey := fmt.Sprintf("job:u%d:%d", userID, id)
+    s.cache.Delete(ctx, cacheKey)
+
+    // Invalidate list caches
+    listPattern := fmt.Sprintf("jobs:u%d:*", userID)
+    s.cache.DeletePattern(ctx, listPattern)
+
+    return nil
+}
+```
+
+## GDPR-Compliant Logging
+
+Vega AI implements **privacy-first logging** that complies with GDPR:
+
+### Core Principles
+
+<Steps>
+  <Step title="No Direct PII">
+    Never log personal data like emails, names, or IP addresses
+  </Step>
+  <Step title="Use References">
+    Log anonymous identifiers (user_id) instead of personal info
+  </Step>
+  <Step title="Hash Identifiers">
+    Use one-way hashes for correlation without exposing data
+  </Step>
+  <Step title="Event-Based">
+    Log events and actions, not sensitive data
+  </Step>
+</Steps>
+
+### What NOT to Log
+
+<Warning>
+  **Never log these:**
+  - Email addresses
+  - Usernames or full names
+  - IP addresses
+  - OAuth tokens or API keys
+  - Password hashes or plaintext passwords
+  - Any personally identifiable information (PII)
+</Warning>
+
+### What TO Log
+
+<Note>
+  **Safe to log:**
+  - User references: `user_123`
+  - Event types: `login_success`, `job_created`
+  - Anonymous metrics: counts, durations
+  - Error types (without sensitive data)
+  - Request IDs for tracing
+</Note>
+
+### Privacy-Aware Logger
+
+```go
+type PrivacyLogger struct {
+    logger zerolog.Logger
+    module string
+}
+
+func GetPrivacyLogger(module string) *PrivacyLogger {
+    return &PrivacyLogger{
+        logger: log.With().Str("module", module).Logger(),
+        module: module,
+    }
+}
+
+func (p *PrivacyLogger) LogAuthEvent(event string, userID int, success bool) {
+    p.logger.Info().
+        Str("event", event).
+        Int("user_ref", userID).  // Reference, not PII
+        Bool("success", success).
+        Msg("Auth event")
+}
+```
+
+### Identifier Hashing
+
+```go
+import "crypto/sha256"
+import "encoding/base64"
+
+func HashIdentifier(identifier string) string {
+    h := sha256.Sum256([]byte(identifier))
+    return base64.URLEncoding.EncodeToString(h[:])
+}
+
+// Usage: Correlate events without exposing email
+hashedEmail := HashIdentifier(user.Email)
+log.Info().Str("user_hash", hashedEmail).Msg("User action")
+```
+
+### Email Redaction
+
+```go
+func RedactEmail(email string) string {
+    parts := strings.Split(email, "@")
+    if len(parts) != 2 {
+        return "[invalid]"
+    }
+
+    localPart := parts[0]
+    domain := parts[1]
+
+    if len(localPart) <= 2 {
+        return "*@" + domain
+    }
+
+    return string(localPart[0]) + "***" + string(localPart[len(localPart)-1]) + "@" + domain
+}
+
+// Example: john.doe@example.com -> j***e@example.com
+```
+
+### Example Logging Patterns
+
+**Good:**
+
+```go
+log.Info().
+    Int("user_ref", userID).
+    Str("event", "job_created").
+    Int("job_id", jobID).
+    Msg("Job created successfully")
+
+log.Error().
+    Err(err).
+    Int("user_ref", userID).
+    Str("operation", "job_analysis").
+    Msg("AI analysis failed")
+```
+
+**Bad:**
+
+```go
+// ❌ Don't do this!
+log.Info().
+    Str("email", user.Email).              // PII!
+    Str("username", user.Username).        // PII!
+    Str("ip_address", request.RemoteAddr). // PII!
+    Msg("User logged in")
+```
+
+## Security Headers
+
+Protects against common web vulnerabilities:
+
+```go
+func SecurityHeaders() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Header("X-Frame-Options", "DENY")
+        c.Header("X-Content-Type-Options", "nosniff")
+        c.Header("X-XSS-Protection", "1; mode=block")
+        c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        c.Header("Content-Security-Policy", 
+            "default-src 'self'; "+
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "+
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "+
+            "img-src 'self' data: https:; "+
+            "font-src 'self' data:; "+
+            "connect-src 'self';",
+        )
+        c.Next()
+    }
+}
+```
+
+**Header Explanations:**
+
+<CardGroup cols={2}>
+  <Card title="X-Frame-Options" icon="window">
+    Prevents clickjacking by disallowing iframe embedding
+  </Card>
+  <Card title="X-Content-Type-Options" icon="file-shield">
+    Prevents MIME type sniffing attacks
+  </Card>
+  <Card title="X-XSS-Protection" icon="shield-virus">
+    Enables browser XSS filtering
+  </Card>
+  <Card title="Strict-Transport-Security" icon="lock">
+    Forces HTTPS connections for 1 year
+  </Card>
+  <Card title="Content-Security-Policy" icon="shield-check">
+    Restricts resource loading to trusted sources
+  </Card>
+</CardGroup>
+
+## CSRF Protection
+
+Token-based CSRF protection for state-changing operations:
+
+```go
+func CSRF(cfg *config.Settings) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if c.Request.Method == "GET" || c.Request.Method == "HEAD" || c.Request.Method == "OPTIONS" {
+            c.Next()
+            return
+        }
+
+        // Check CSRF token
+        token := c.GetHeader("X-CSRF-Token")
+        if token == "" {
+            token = c.PostForm("csrf_token")
+        }
+
+        sessionToken, _ := c.Cookie("csrf_token")
+        if token == "" || token != sessionToken {
+            c.JSON(http.StatusForbidden, gin.H{"error": "Invalid CSRF token"})
+            c.Abort()
+            return
+        }
+
+        c.Next()
+    }
+}
+```
+
+## API Security
+
+### Input Validation
+
+```go
+import "github.com/go-playground/validator/v10"
+
+type CreateJobRequest struct {
+    Title          string   `json:"title" binding:"required,min=3,max=200"`
+    Description    string   `json:"description" binding:"required,min=10"`
+    Location       string   `json:"location" binding:"omitempty,max=100"`
+    SourceURL      string   `json:"source_url" binding:"omitempty,url"`
+    RequiredSkills []string `json:"required_skills" binding:"omitempty,dive,min=1,max=50"`
+}
+
+func (h *JobHandler) CreateJob(c *gin.Context) {
+    var req CreateJobRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    // Process validated input
+}
+```
+
+### SQL Injection Prevention
+
+Using Squirrel query builder prevents SQL injection:
+
+```go
+// Safe: Parameterized queries
+sql, args, _ := sq.Select("*").
+    From("jobs").
+    Where(sq.Eq{"user_id": userID, "title": title}).
+    ToSql()
+
+db.QueryContext(ctx, sql, args...)
+
+// Generated SQL: SELECT * FROM jobs WHERE user_id = ? AND title = ?
+// Args: [123, "Software Engineer"]
+```
+
+## Secret Management
+
+Supports Docker secrets via `_FILE` suffix:
+
+```bash
+# Environment variable
+TOKEN_SECRET=my-secret-key
+
+# Docker secret file
+TOKEN_SECRET_FILE=/run/secrets/token_secret
+
+# File contents: my-secret-key
+```
+
+```go
+func getEnv(key string, defaultValue string) string {
+    if filePath := os.Getenv(key + "_FILE"); filePath != "" {
+        // Security checks: absolute path, no symlinks, size limit
+        if !filepath.IsAbs(filePath) || strings.Contains(filePath, "..") {
+            log.Warn().Msgf("Invalid secret file path: %s", filePath)
+            return defaultValue
+        }
+
+        content, err := os.ReadFile(filePath)
+        if err == nil {
+            return strings.TrimSpace(string(content))
+        }
+    }
+
+    if value := os.Getenv(key); value != "" {
+        return value
+    }
+
+    return defaultValue
+}
+```
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Principle of Least Privilege">
+    Services only access data they need, user isolation enforced
+  </Step>
+  <Step title="Defense in Depth">
+    Multiple security layers: authentication, authorization, encryption
+  </Step>
+  <Step title="Secure Defaults">
+    Security features enabled by default (HTTPS, CSRF, headers)
+  </Step>
+  <Step title="Graceful Degradation">
+    Cache failures don't expose sensitive data
+  </Step>
+  <Step title="Regular Updates">
+    Dependencies updated regularly for security patches
+  </Step>
+  <Step title="Privacy by Design">
+    GDPR-compliant logging, no PII exposure
+  </Step>
+</Steps>
+
+<Note>
+  Vega AI's security architecture provides **defense in depth** with authentication, authorization, data isolation, privacy-first logging, and protection against common web vulnerabilities.
+</Note>

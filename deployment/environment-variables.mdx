@@ -1,0 +1,522 @@
+---
+title: 'Environment Variables'
+description: 'Complete reference for Vega AI environment variables'
+---
+
+## Overview
+
+Vega AI can be configured using environment variables. Most settings have sensible defaults and only need to be overridden for specific use cases.
+
+## Configuration Priority
+
+Vega AI reads configuration in this order (later sources override earlier ones):
+
+1. Default values (built into application)
+2. Environment variables
+3. Environment variables from files (using `_FILE` suffix)
+
+## Required Settings
+
+These variables are required for Vega AI to function:
+
+### GEMINI_API_KEY
+
+- **Description**: Google Gemini API key for AI features (document generation, job matching, CV parsing)
+- **Required**: Yes
+- **Default**: None
+- **Example**: `GEMINI_API_KEY=AIzaSyB...`
+- **Get API Key**: [Google AI Studio](https://aistudio.google.com/app/apikey)
+
+```bash
+GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+### TOKEN_SECRET
+
+- **Description**: Secret key for signing JWT tokens (authentication)
+- **Required**: Highly recommended for production
+- **Default**: Auto-generated (not recommended for production)
+- **Example**: `TOKEN_SECRET=your-super-secret-jwt-key-here`
+- **Generate**: `openssl rand -base64 32`
+
+```bash
+TOKEN_SECRET=your-super-secret-jwt-key-here
+```
+
+<Warning>
+  Always set `TOKEN_SECRET` in production. Using the default or auto-generated value will invalidate all user sessions when the container restarts.
+</Warning>
+
+## Optional Settings
+
+### Admin User Configuration
+
+#### ADMIN_USERNAME
+
+- **Description**: Username for the default admin account (created on first startup)
+- **Default**: `admin`
+- **Example**: `ADMIN_USERNAME=myadmin`
+
+```bash
+ADMIN_USERNAME=admin
+```
+
+#### ADMIN_PASSWORD
+
+- **Description**: Password for the default admin account
+- **Default**: `VegaAdmin`
+- **Example**: `ADMIN_PASSWORD=MySecurePassword123`
+
+```bash
+ADMIN_PASSWORD=VegaAdmin
+```
+
+<Note>
+  Change the default password immediately after first login via Settings → Account.
+</Note>
+
+#### RESET_ADMIN_PASSWORD
+
+- **Description**: Reset admin password to the value in `ADMIN_PASSWORD` on startup
+- **Default**: `false`
+- **Values**: `true`, `false`
+
+```bash
+RESET_ADMIN_PASSWORD=true
+```
+
+### Security Settings
+
+#### COOKIE_SECURE
+
+- **Description**: Require HTTPS for authentication cookies
+- **Default**: `true` (production), `false` (development)
+- **Values**: `true`, `false`
+- **Use Case**: Set to `false` only for local development without HTTPS
+
+```bash
+COOKIE_SECURE=true
+```
+
+#### COOKIE_DOMAIN
+
+- **Description**: Domain for authentication cookies
+- **Default**: None (uses request domain)
+- **Example**: `COOKIE_DOMAIN=yourdomain.com`
+- **Use Case**: Cross-subdomain authentication
+
+```bash
+COOKIE_DOMAIN=yourdomain.com
+```
+
+#### ACCESS_TOKEN_EXPIRY
+
+- **Description**: Access token expiry time in minutes
+- **Default**: `60` (1 hour)
+- **Example**: `ACCESS_TOKEN_EXPIRY=30`
+
+```bash
+ACCESS_TOKEN_EXPIRY=60
+```
+
+#### REFRESH_TOKEN_EXPIRY
+
+- **Description**: Refresh token expiry time in hours
+- **Default**: `72` (3 days)
+- **Example**: `REFRESH_TOKEN_EXPIRY=168`
+
+```bash
+REFRESH_TOKEN_EXPIRY=72
+```
+
+### OAuth Configuration
+
+<Note>
+  OAuth settings are only needed if you want to enable Google social login.
+</Note>
+
+#### GOOGLE_CLIENT_ID
+
+- **Description**: Google OAuth client ID
+- **Required**: Only for Google OAuth
+- **Default**: None
+- **Example**: `GOOGLE_CLIENT_ID=123456789-abc...apps.googleusercontent.com`
+
+```bash
+GOOGLE_CLIENT_ID=your-google-client-id-here
+```
+
+#### GOOGLE_CLIENT_SECRET
+
+- **Description**: Google OAuth client secret
+- **Required**: Only for Google OAuth
+- **Default**: None
+- **Example**: `GOOGLE_CLIENT_SECRET=GOCSPX-...`
+
+```bash
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+```
+
+#### GOOGLE_CLIENT_REDIRECT_URL
+
+- **Description**: OAuth redirect URL for Google authentication
+- **Default**: `http://localhost:8765/auth/google/callback`
+- **Example**: `GOOGLE_CLIENT_REDIRECT_URL=https://yourdomain.com/auth/google/callback`
+
+```bash
+GOOGLE_CLIENT_REDIRECT_URL=http://localhost:8765/auth/google/callback
+```
+
+### CORS Configuration
+
+#### CORS_ALLOWED_ORIGINS
+
+- **Description**: Comma-separated list of allowed CORS origins
+- **Default**: `*` (production), `http://localhost:*` (development)
+- **Example**: `CORS_ALLOWED_ORIGINS=https://app.example.com,https://example.com`
+
+```bash
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+```
+
+### Cloud Mode Features
+
+#### CLOUD_MODE
+
+- **Description**: Enable cloud-native features (usage quotas, multi-tenancy)
+- **Default**: `false`
+- **Values**: `true`, `false`
+- **Use Case**: Set to `true` for managed cloud deployments
+
+```bash
+CLOUD_MODE=false
+```
+
+<Note>
+  Cloud mode is designed for the hosted version at [vega.benidevo.com](https://vega.benidevo.com). Self-hosted users should keep this disabled.
+</Note>
+
+### Development Settings
+
+#### IS_DEVELOPMENT
+
+- **Description**: Enable development mode (verbose logging, hot reload)
+- **Default**: `false`
+- **Values**: `true`, `false`
+
+```bash
+IS_DEVELOPMENT=false
+```
+
+#### LOG_LEVEL
+
+- **Description**: Application log level
+- **Default**: `info` (production), `debug` (development)
+- **Values**: `debug`, `info`, `warn`, `error`
+
+```bash
+LOG_LEVEL=info
+```
+
+### Database Configuration
+
+#### DB_CONNECTION_STRING
+
+- **Description**: SQLite database connection string with optimized settings
+- **Default**: `/app/data/vega.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON&_cache_size=10000&_synchronous=NORMAL`
+- **Example**: `/custom/path/vega.db?_journal_mode=WAL&_busy_timeout=5000`
+
+```bash
+DB_CONNECTION_STRING=/app/data/vega.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON&_cache_size=10000&_synchronous=NORMAL
+```
+
+<Warning>
+  Only change this if you need a custom database path. The default includes optimized SQLite settings.
+</Warning>
+
+## File-Based Configuration (Docker Secrets)
+
+Vega AI supports reading sensitive configuration from files using the `_FILE` suffix pattern. This is ideal for Docker Secrets.
+
+### Supported _FILE Variables
+
+- `GEMINI_API_KEY_FILE`
+- `TOKEN_SECRET_FILE`
+- `ADMIN_PASSWORD_FILE`
+- `GOOGLE_CLIENT_SECRET_FILE`
+
+### Usage with Docker Secrets
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    environment:
+      - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+      - TOKEN_SECRET_FILE=/run/secrets/token_secret
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
+    secrets:
+      - gemini_api_key
+      - token_secret
+      - admin_password
+
+secrets:
+  gemini_api_key:
+    external: true
+  token_secret:
+    external: true
+  admin_password:
+    external: true
+```
+
+Create secrets:
+
+```bash
+echo "your-api-key" | docker secret create gemini_api_key -
+echo "your-token-secret" | docker secret create token_secret -
+echo "your-password" | docker secret create admin_password -
+```
+
+### Security Features
+
+- **Path validation**: Prevents directory traversal attacks
+- **Size limits**: Maximum 1MB per secret file
+- **Priority**: `_FILE` variables override regular environment variables
+
+## Configuration Examples
+
+### Minimal Self-Hosted Setup
+
+```bash .env
+# Required
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### Recommended Production Setup
+
+```bash .env
+# Required
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-super-secret-jwt-key
+
+# Admin credentials
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=YourSecurePassword123
+
+# Security
+COOKIE_SECURE=true
+ACCESS_TOKEN_EXPIRY=60
+REFRESH_TOKEN_EXPIRY=72
+
+# Logging
+LOG_LEVEL=info
+```
+
+### Production with Custom CORS
+
+```bash .env
+# Required
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-super-secret-jwt-key
+
+# Admin credentials
+ADMIN_PASSWORD=YourSecurePassword123
+
+# CORS for custom domain
+CORS_ALLOWED_ORIGINS=https://vega.yourdomain.com,https://yourdomain.com
+COOKIE_DOMAIN=yourdomain.com
+COOKIE_SECURE=true
+
+# Security
+ACCESS_TOKEN_EXPIRY=60
+REFRESH_TOKEN_EXPIRY=72
+```
+
+### Development Setup
+
+```bash .env
+# Required
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=dev-secret-key
+
+# Development mode
+IS_DEVELOPMENT=true
+LOG_LEVEL=debug
+
+# Security (relaxed for local dev)
+COOKIE_SECURE=false
+
+# Admin (use defaults)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=VegaAdmin
+```
+
+### Complete Configuration Template
+
+```bash .env
+# =============================================================================
+# REQUIRED SETTINGS
+# =============================================================================
+
+# AI Provider Configuration
+GEMINI_API_KEY=your-gemini-api-key
+
+# JWT Token Secret
+TOKEN_SECRET=your-super-secret-jwt-key
+
+# =============================================================================
+# ADMIN USER CONFIGURATION
+# =============================================================================
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=VegaAdmin
+RESET_ADMIN_PASSWORD=false
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+
+COOKIE_SECURE=true
+COOKIE_DOMAIN=
+ACCESS_TOKEN_EXPIRY=60
+REFRESH_TOKEN_EXPIRY=72
+
+# =============================================================================
+# OAUTH CONFIGURATION (Optional)
+# =============================================================================
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CLIENT_REDIRECT_URL=http://localhost:8765/auth/google/callback
+
+# =============================================================================
+# CORS CONFIGURATION
+# =============================================================================
+
+CORS_ALLOWED_ORIGINS=*
+
+# =============================================================================
+# CLOUD MODE FEATURES
+# =============================================================================
+
+CLOUD_MODE=false
+
+# =============================================================================
+# DEVELOPMENT SETTINGS
+# =============================================================================
+
+IS_DEVELOPMENT=false
+LOG_LEVEL=info
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# DB_CONNECTION_STRING=/app/data/vega.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON&_cache_size=10000&_synchronous=NORMAL
+```
+
+## Validation and Troubleshooting
+
+### Verify Environment Variables
+
+<CodeGroup>
+```bash Docker
+# Inspect container environment
+docker inspect vega-ai --format='{{range .Config.Env}}{{println .}}{{end}}'
+
+# Or with Docker Compose
+docker compose config
+```
+
+```bash Docker Swarm
+# Inspect service environment
+docker service inspect vega-stack_vega-ai --format='{{json .Spec.TaskTemplate.ContainerSpec.Env}}' | jq
+```
+</CodeGroup>
+
+### Common Issues
+
+#### Variables Not Loading
+
+1. **Check .env file syntax:**
+   - No spaces around `=` signs
+   - No quotes around values (unless part of the value)
+   - One variable per line
+
+   ```bash
+   # WRONG
+   GEMINI_API_KEY = "value"
+   
+   # RIGHT
+   GEMINI_API_KEY=value
+   ```
+
+2. **Verify file is being loaded:**
+   ```bash
+   # Docker Compose
+   docker compose config
+   
+   # Docker Swarm
+   docker-compose config | grep -A 5 environment
+   ```
+
+#### Authentication Issues
+
+1. **TOKEN_SECRET not set:** Sessions will be invalidated on restart
+2. **ADMIN_PASSWORD not applied:** Use `RESET_ADMIN_PASSWORD=true` to force reset
+
+#### CORS Errors
+
+1. **Check CORS_ALLOWED_ORIGINS:** Must include your frontend domain
+2. **Verify format:** Comma-separated, no spaces
+3. **Check protocol:** Must match exactly (http vs https)
+
+```bash
+# Multiple origins
+CORS_ALLOWED_ORIGINS=https://app.example.com,https://example.com
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use .env files">
+    Store configuration in `.env` files, never hardcode in compose files
+  </Step>
+
+  <Step title="Generate secure secrets">
+    Always generate secure random values for `TOKEN_SECRET`:
+    ```bash
+    openssl rand -base64 32
+    ```
+  </Step>
+
+  <Step title="Use Docker Secrets in production">
+    For production Swarm deployments, use Docker Secrets instead of environment variables
+  </Step>
+
+  <Step title="Never commit secrets">
+    Add `.env` to `.gitignore`. Use `.env.example` as a template
+  </Step>
+
+  <Step title="Change default passwords">
+    Always change `ADMIN_PASSWORD` from the default value
+  </Step>
+
+  <Step title="Enable security features">
+    Set `COOKIE_SECURE=true` and configure `CORS_ALLOWED_ORIGINS` in production
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Deploy Vega AI with Docker
+  </Card>
+  <Card title="Docker Compose" icon="layer-group" href="/deployment/docker-compose">
+    Use Docker Compose for easier management
+  </Card>
+  <Card title="Docker Swarm" icon="server" href="/deployment/docker-swarm">
+    Scale with Docker Swarm
+  </Card>
+</CardGroup>

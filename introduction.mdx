@@ -1,0 +1,169 @@
+---
+title: Introduction
+description: Navigate your career journey with AI-powered precision
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.svg"
+  alt="Vega AI Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.svg"
+  alt="Vega AI Hero Dark"
+/>
+
+## What is Vega AI?
+
+Vega AI is an intelligent job application tracking system that combines powerful AI capabilities with complete data privacy. Just as ancient navigators used the star Vega to find their way, Vega AI helps you navigate your career journey with AI-powered tools for job search, application tracking, and document generation.
+
+Built with Go and powered by Google Gemini AI, Vega AI is designed for both cloud deployment and self-hosting, giving you the flexibility to choose between convenience and complete data control.
+
+## Key Benefits
+
+<CardGroup cols={2}>
+  <Card
+    title="AI-Powered Intelligence"
+    icon="brain"
+  >
+    Get intelligent job match scores, personalized cover letters, and tailored CVs generated using Google Gemini AI based on your profile and job requirements.
+  </Card>
+  <Card
+    title="Privacy-First Architecture"
+    icon="shield-halved"
+  >
+    Self-host Vega AI with a single Docker command to maintain complete control over your job search data. Your information stays on your infrastructure.
+  </Card>
+  <Card
+    title="Browser Extension"
+    icon="puzzle-piece"
+  >
+    Capture job postings from LinkedIn and other job boards with one click. No more manual data entry or lost opportunities.
+  </Card>
+  <Card
+    title="Smart Profile Management"
+    icon="user-gear"
+  >
+    Upload your existing CV to automatically populate your profile with AI-powered parsing. Maintain comprehensive work history, education, and skills.
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+### Active Job Seekers
+
+Track all your applications in one place with customizable statuses. Get AI-powered insights on which opportunities match your profile best, and generate tailored documents for each application.
+
+```bash
+# Self-host Vega AI in seconds
+docker run --pull always -d \
+  --name vega-ai \
+  -p 8765:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+### Privacy-Conscious Professionals
+
+With self-hosting, your sensitive career data never leaves your infrastructure. Perfect for professionals who need to maintain confidentiality during their job search.
+
+<Note>
+  Self-hosted mode requires only a **free** Google Gemini API key. No paid subscriptions needed.
+</Note>
+
+### Career Changers
+
+Leverage AI to understand how your existing experience translates to new roles. Get detailed match analysis with strengths, weaknesses, and actionable feedback for each opportunity.
+
+### Recruitment Efficiency
+
+Organize candidate information and job postings systematically. The AI-powered matching helps identify the best fit candidates quickly.
+
+## How It Works
+
+<Steps>
+  <Step title="Set Up Your Profile">
+    Create your professional profile manually or upload your CV for AI-powered parsing. Include work experience, education, skills, and certifications.
+  </Step>
+  <Step title="Capture Job Opportunities">
+    Use the browser extension to capture jobs from LinkedIn with one click, or manually add opportunities from any source.
+  </Step>
+  <Step title="Get AI Analysis">
+    Analyze each job to receive a match score (0-100) with detailed insights on your compatibility, strengths, and areas for improvement.
+  </Step>
+  <Step title="Generate Documents">
+    Create tailored cover letters and CVs optimized for each specific job using AI that understands your profile and the role requirements.
+  </Step>
+  <Step title="Track Applications">
+    Manage your applications through customizable stages from Applied to Offer, with full history and notes.
+  </Step>
+</Steps>
+
+## Architecture Overview
+
+Vega AI follows a clean, domain-driven architecture:
+
+- **Backend:** Go with layered architecture (handlers → services → repositories)
+- **Database:** SQLite with WAL mode for reliable multi-tenant data isolation
+- **Frontend:** Go templates + HTMX + Tailwind CSS for responsive, interactive UI
+- **AI Integration:** Google Gemini API with pluggable LLM interface
+- **Caching:** Badger embedded database for performance optimization
+- **Deployment:** Docker with multi-architecture support (AMD64/ARM64)
+
+<Warning>
+  Vega AI is licensed under AGPL-3.0. If you run a modified version on a server, you must make your source code available to users. Contact [vega@benidevo.com](mailto:vega@benidevo.com) for commercial licensing options.
+</Warning>
+
+## Try Vega AI
+
+<CardGroup cols={2}>
+  <Card
+    title="Cloud Mode"
+    icon="cloud"
+    href="https://vega.benidevo.com"
+  >
+    Try Vega AI immediately at vega.benidevo.com with Google OAuth authentication and usage quotas.
+  </Card>
+  <Card
+    title="Self-Host"
+    icon="server"
+    href="/getting-started/quickstart"
+  >
+    Deploy Vega AI on your own infrastructure with complete data control and no usage limits.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart"
+    icon="rocket"
+    href="/getting-started/quickstart"
+  >
+    Get Vega AI running in under 5 minutes with Docker.
+  </Card>
+  <Card
+    title="Features"
+    icon="star"
+    href="/features"
+  >
+    Explore all the features that make Vega AI powerful.
+  </Card>
+  <Card
+    title="Development"
+    icon="code"
+    href="/development/setup"
+  >
+    Learn how to contribute or customize Vega AI for your needs.
+  </Card>
+  <Card
+    title="API Reference"
+    icon="brackets-curly"
+    href="/api/authentication/overview"
+  >
+    Integrate with Vega AI using the REST API.
+  </Card>
+</CardGroup>

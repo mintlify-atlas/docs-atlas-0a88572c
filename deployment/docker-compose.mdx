@@ -1,0 +1,499 @@
+---
+title: 'Docker Compose Deployment'
+description: 'Deploy Vega AI using Docker Compose for easier management'
+---
+
+## Overview
+
+Docker Compose provides a cleaner way to manage Vega AI deployments with declarative configuration. It's ideal for single-server deployments and development environments.
+
+## Prerequisites
+
+- Docker Engine 20.10 or later
+- Docker Compose V2 (included with Docker Desktop)
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+
+## Quick Start
+
+<Steps>
+  <Step title="Create project directory">
+    ```bash
+    mkdir vega-ai && cd vega-ai
+    ```
+  </Step>
+
+  <Step title="Create docker-compose.yml">
+    Create a `docker-compose.yml` file:
+
+    ```yaml docker-compose.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        container_name: vega-ai
+        ports:
+          - "8765:8765"
+        volumes:
+          - vega-data:/app/data
+        env_file:
+          - .env
+        restart: unless-stopped
+
+    volumes:
+      vega-data:
+    ```
+  </Step>
+
+  <Step title="Create .env file">
+    Create a `.env` file with your configuration:
+
+    ```bash .env
+    GEMINI_API_KEY=your-gemini-api-key
+    TOKEN_SECRET=your-super-secret-jwt-key
+    ```
+
+    <Note>
+      Generate a secure token secret: `openssl rand -base64 32`
+    </Note>
+  </Step>
+
+  <Step title="Start the service">
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+
+  <Step title="Access the application">
+    1. Visit [http://localhost:8765](http://localhost:8765)
+    2. Log in with default credentials:
+       - Username: `admin`
+       - Password: `VegaAdmin`
+    3. **Important:** Change your password after first login
+  </Step>
+</Steps>
+
+## Configuration Examples
+
+### Production Configuration
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    container_name: vega-ai
+    ports:
+      - "8765:8765"
+    volumes:
+      - vega-data:/app/data
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8765/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  vega-data:
+    driver: local
+```
+
+### Custom Port Configuration
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    container_name: vega-ai
+    ports:
+      - "3000:8765"  # Access at http://localhost:3000
+    volumes:
+      - vega-data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  vega-data:
+```
+
+### Using Bind Mounts
+
+For easier access to data files:
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    container_name: vega-ai
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data  # Bind mount to local directory
+    env_file:
+      - .env
+    restart: unless-stopped
+```
+
+<Warning>
+  When using bind mounts, ensure the directory has proper permissions (UID 1001):
+  ```bash
+  mkdir data
+  sudo chown -R 1001:1001 data
+  ```
+</Warning>
+
+### Development Configuration
+
+The repository includes a development `docker-compose.yaml` for contributors:
+
+```yaml docker-compose.yaml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile
+    container_name: app
+    env_file:
+      - .env
+    environment:
+      - DB_CONNECTION_STRING=/app/data/vega.db
+      - IS_DEVELOPMENT=true
+    volumes:
+      - .:/app
+      - vega-dev-data:/app/data
+    ports:
+      - "8765:8765"
+    networks:
+      - vega
+
+  db-dashboard:
+    image: coleifer/sqlite-web:latest
+    container_name: db-dashboard
+    volumes:
+      - vega-dev-data:/data
+    command: sqlite_web -H 0.0.0.0 -p 8080 /data/vega.db
+    depends_on:
+      - app
+    ports:
+      - "8080:8080"
+    networks:
+      - vega
+
+networks:
+  vega:
+
+volumes:
+  vega-dev-data:
+```
+
+## Docker Compose Commands
+
+### Start Services
+
+```bash
+# Start in detached mode
+docker compose up -d
+
+# Start with logs visible
+docker compose up
+
+# Pull latest image and start
+docker compose pull && docker compose up -d
+```
+
+### View Logs
+
+```bash
+# Follow logs in real-time
+docker compose logs -f
+
+# View logs for specific service
+docker compose logs -f vega-ai
+
+# View last 100 lines
+docker compose logs --tail 100
+```
+
+### Stop Services
+
+```bash
+# Stop services (keeps containers)
+docker compose stop
+
+# Stop and remove containers
+docker compose down
+
+# Stop, remove containers and volumes
+docker compose down -v
+```
+
+### Restart Services
+
+```bash
+# Restart all services
+docker compose restart
+
+# Restart specific service
+docker compose restart vega-ai
+```
+
+### Update Services
+
+```bash
+# Pull latest images
+docker compose pull
+
+# Recreate containers with new images
+docker compose up -d --force-recreate
+
+# Or combine both
+docker compose pull && docker compose up -d --force-recreate
+```
+
+### View Status
+
+```bash
+# List running services
+docker compose ps
+
+# View resource usage
+docker compose stats
+
+# Execute commands in container
+docker compose exec vega-ai sh
+```
+
+## Environment Variables
+
+### Using .env File
+
+Create a `.env` file in the same directory as `docker-compose.yml`:
+
+```bash .env
+# Required
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-super-secret-jwt-key
+
+# Optional - Admin Configuration
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=VegaAdmin
+RESET_ADMIN_PASSWORD=false
+
+# Optional - Security Settings
+COOKIE_SECURE=true
+ACCESS_TOKEN_EXPIRY=60
+REFRESH_TOKEN_EXPIRY=72
+
+# Optional - CORS Configuration
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# Optional - Development
+IS_DEVELOPMENT=false
+LOG_LEVEL=info
+```
+
+### Using env_file in Docker Compose
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    env_file:
+      - .env          # Default configuration
+      - .env.local    # Local overrides (gitignored)
+```
+
+### Inline Environment Variables
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      TOKEN_SECRET: ${TOKEN_SECRET}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-VegaAdmin}
+      LOG_LEVEL: info
+```
+
+## Backup and Restore
+
+### Backup with Docker Compose
+
+```bash
+# Create backup directory
+mkdir -p backups
+
+# Backup database
+docker compose exec vega-ai cp /app/data/vega.db /app/data/backup.db
+docker compose cp vega-ai:/app/data/backup.db backups/vega-$(date +%Y%m%d).db
+```
+
+### Restore from Backup
+
+```bash
+# Stop service
+docker compose stop vega-ai
+
+# Copy backup to container
+docker compose cp backups/vega-20260305.db vega-ai:/app/data/vega.db
+
+# Start service
+docker compose start vega-ai
+```
+
+## Troubleshooting
+
+### Service Won't Start
+
+1. Check service logs:
+   ```bash
+   docker compose logs vega-ai
+   ```
+
+2. Validate compose file:
+   ```bash
+   docker compose config
+   ```
+
+3. Check environment variables:
+   ```bash
+   docker compose config | grep -A 5 environment
+   ```
+
+### Port Already in Use
+
+Change the port mapping in `docker-compose.yml`:
+
+```yaml
+ports:
+  - "3000:8765"  # Use port 3000 instead
+```
+
+### Volume Permission Issues
+
+If using bind mounts:
+
+```bash
+sudo chown -R 1001:1001 ./data
+sudo chmod -R 755 ./data
+```
+
+### Environment Variables Not Loading
+
+1. Verify `.env` file exists and has no syntax errors
+2. Check variable names match exactly (case-sensitive)
+3. Use `docker compose config` to see resolved configuration
+4. Ensure no spaces around `=` in `.env` file
+
+## Advanced Configuration
+
+### With Reverse Proxy (Nginx)
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    expose:
+      - "8765"
+    volumes:
+      - vega-data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - vega-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - vega-ai
+    networks:
+      - vega-network
+
+networks:
+  vega-network:
+
+volumes:
+  vega-data:
+```
+
+### Resource Limits
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    volumes:
+      - vega-data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  vega-data:
+```
+
+## Migration from Docker Run
+
+If you're currently using `docker run`, migrate to Docker Compose:
+
+<Steps>
+  <Step title="Export environment variables">
+    ```bash
+    docker inspect vega-ai --format='{{range .Config.Env}}{{println .}}{{end}}' > .env
+    ```
+  </Step>
+
+  <Step title="Create docker-compose.yml">
+    Use the production configuration example above.
+  </Step>
+
+  <Step title="Stop old container">
+    ```bash
+    docker stop vega-ai
+    docker rm vega-ai
+    ```
+  </Step>
+
+  <Step title="Start with Compose">
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Your data will be preserved if you use the same volume name (`vega-data`).
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Swarm" icon="server" href="/deployment/docker-swarm">
+    Scale with Docker Swarm for high availability
+  </Card>
+  <Card title="Environment Variables" icon="sliders" href="/deployment/environment-variables">
+    Complete configuration reference
+  </Card>
+</CardGroup>

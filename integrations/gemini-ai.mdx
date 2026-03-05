@@ -1,0 +1,464 @@
+---
+title: Google Gemini AI
+description: Configure and use Google Gemini AI for intelligent job matching, CV parsing, and cover letter generation
+icon: stars
+---
+
+Vega AI uses **Google Gemini AI** to power its intelligent features including job matching, CV parsing, cover letter generation, and CV generation. This integration provides accurate, context-aware AI assistance for your job search.
+
+## Overview
+
+The Gemini AI integration provides:
+
+- **Smart Job Matching**: AI-powered compatibility scores with detailed strengths and weaknesses analysis
+- **CV Parsing**: Automatic extraction of structured information from uploaded CVs
+- **Cover Letter Generation**: Tailored cover letters based on your profile and job requirements
+- **CV Generation**: Professional CVs customized for specific job applications
+- **Intelligent Caching**: Optimized API usage with response caching and request deduplication
+
+## Getting Your API Key
+
+Vega AI requires a Gemini API key to function. Google offers generous free tier access:
+
+<Steps>
+  <Step title="Visit Google AI Studio">
+    Go to [Google AI Studio](https://aistudio.google.com/app/apikey) to create your API key.
+  </Step>
+
+  <Step title="Sign In">
+    Sign in with your Google account. You may need to accept terms of service.
+  </Step>
+
+  <Step title="Create API Key">
+    Click "Create API Key" and select a Google Cloud project (or create a new one).
+    
+    <Note>
+      The free tier includes generous quotas suitable for personal use. See [Google's pricing page](https://ai.google.dev/pricing) for details.
+    </Note>
+  </Step>
+
+  <Step title="Copy Your Key">
+    Copy the generated API key. Keep it secure - treat it like a password.
+  </Step>
+</Steps>
+
+<Warning>
+  Never commit your API key to version control or share it publicly. Store it securely in environment variables or secrets management systems.
+</Warning>
+
+## Configuration
+
+### Self-Hosted Setup
+
+For self-hosted deployments, configure the Gemini API key through environment variables:
+
+<CodeGroup>
+```bash Docker Run
+docker run -d \
+  --name vega-ai \
+  -p 8765:8765 \
+  -v vega-data:/app/data \
+  -e GEMINI_API_KEY=your-api-key-here \
+  -e TOKEN_SECRET=your-jwt-secret \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    ports:
+      - "8765:8765"
+    volumes:
+      - vega-data:/app/data
+    environment:
+      - GEMINI_API_KEY=your-api-key-here
+      - TOKEN_SECRET=your-jwt-secret
+    restart: unless-stopped
+
+volumes:
+  vega-data:
+```
+
+```bash .env File
+# Required
+GEMINI_API_KEY=your-api-key-here
+TOKEN_SECRET=your-jwt-secret
+
+# Optional: Customize AI models
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL_CV_PARSING=gemini-2.5-flash
+GEMINI_MODEL_JOB_ANALYSIS=gemini-2.5-flash
+GEMINI_MODEL_COVER_LETTER=gemini-2.5-flash
+```
+</CodeGroup>
+
+### Using Docker Secrets (Production)
+
+For production deployments, use Docker secrets to securely manage your API key:
+
+```bash
+# Create a secret file
+echo "your-api-key-here" > gemini_api_key.txt
+
+# Create Docker secret
+docker secret create gemini_api_key gemini_api_key.txt
+
+# Remove the plain text file
+rm gemini_api_key.txt
+```
+
+Then reference it in your docker-compose.yml:
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    secrets:
+      - gemini_api_key
+    environment:
+      - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+      - TOKEN_SECRET_FILE=/run/secrets/token_secret
+
+secrets:
+  gemini_api_key:
+    external: true
+  token_secret:
+    external: true
+```
+
+<Note>
+  The `_FILE` suffix tells Vega AI to read the value from a file instead of directly from the environment variable. This is more secure for sensitive data.
+</Note>
+
+## AI Features
+
+### Job Matching & Analysis
+
+The AI analyzes your profile against job requirements to provide:
+
+**Match Score**: 0-100 compatibility rating based on:
+- Work experience relevance and duration
+- Skills alignment with job requirements
+- Education background (weighted by experience level)
+- Transferable skills and related technologies
+
+**Detailed Feedback**:
+- **Strengths**: Your standout qualifications for this role
+- **Weaknesses**: Areas where you may need improvement
+- **Highlights**: Key selling points to emphasize
+- **Feedback**: Actionable recommendations for your application
+
+<Note>
+  The AI uses experience-based evaluation: candidates with 2+ years of experience are evaluated primarily on work history, while entry-level candidates (less than 2 years) have education weighted more heavily.
+</Note>
+
+### CV Parsing
+
+Automatically extracts structured information from uploaded CVs:
+
+- **Personal Information**: Name, email, phone, location, professional title
+- **Work Experience**: Company, job title, dates, location, responsibilities
+- **Education**: Institution, degree, field of study, dates
+- **Certifications**: Name, issuing organization, dates, credential details
+- **Skills**: List of technical and professional skills
+
+**Validation**:
+- Rejects non-CV documents (police reports, medical records, etc.)
+- Ensures extracted data is accurate and properly formatted
+- Handles various CV formats and layouts
+
+### Cover Letter Generation
+
+Generates tailored cover letters based on:
+
+- Your professional profile (experience, education, skills)
+- Job description and requirements
+- Company information
+- Your career goals and motivations
+
+**Features**:
+- Professional tone and structure
+- Highlights relevant experience and skills
+- Addresses specific job requirements
+- 150-250 word length (customizable)
+- Plain text format for easy copying
+
+### CV Generation
+
+Creates professional CVs customized for specific job applications:
+
+- **Intelligent Filtering**: Only includes skills directly relevant to the job
+- **Achievement-Focused**: Transforms responsibilities into impactful statements
+- **Contextual Bullet Points**: 3-5 relevant points per role based on job requirements
+- **Professional Formatting**: Properly formatted dates, locations, and sections
+- **Honest Presentation**: Uses only your actual experience, never fabricates data
+
+## Advanced Configuration
+
+### Model Selection
+
+Vega AI uses different Gemini models optimized for specific tasks:
+
+```bash
+# Default: Fast model for all tasks
+GEMINI_MODEL=gemini-2.5-flash
+
+# Task-specific models (optional)
+GEMINI_MODEL_CV_PARSING=gemini-2.5-flash      # Fast parsing
+GEMINI_MODEL_JOB_ANALYSIS=gemini-2.5-flash    # Job matching
+GEMINI_MODEL_COVER_LETTER=gemini-2.5-flash    # Content generation
+```
+
+**Available Models**:
+- `gemini-2.5-flash`: Fast, cost-effective for most tasks (recommended)
+- `gemini-2.5-pro`: Advanced model for complex analysis (higher cost)
+
+<Warning>
+  Using more advanced models will increase API costs. The default `gemini-2.5-flash` model provides excellent results for most use cases.
+</Warning>
+
+### Caching & Optimization
+
+Vega AI includes built-in optimizations to reduce API usage:
+
+**Response Caching**:
+- Caches AI responses for 60 seconds by default
+- Reduces redundant API calls for similar requests
+- Automatically enabled for job matching and CV parsing
+
+**Request Deduplication**:
+- Prevents duplicate concurrent requests
+- Shares responses among simultaneous identical requests
+- Improves performance under load
+
+**Configuration**:
+```bash
+# Cache settings (optional)
+CACHE_MAX_MEMORY_MB=256          # Maximum cache size
+CACHE_DEFAULT_TTL=1h             # Cache duration
+```
+
+### Temperature & Creativity
+
+The AI uses optimized temperature settings for each task:
+
+- **CV Parsing**: 0.1 (low) - Consistent, accurate extraction
+- **Job Analysis**: 0.3 (low-medium) - Objective evaluation
+- **Cover Letters**: 0.4 (medium) - Balanced creativity and professionalism
+- **CV Generation**: 0.4 (medium) - Professional while tailored
+
+<Note>
+  These values are automatically optimized and don't need manual configuration.
+</Note>
+
+## API Usage & Quotas
+
+### Free Tier Limits
+
+Google's Gemini API free tier includes:
+- **15 RPM** (requests per minute)
+- **1 million TPM** (tokens per minute)
+- **1,500 RPD** (requests per day)
+
+Vega AI's caching and optimization features help you stay within these limits.
+
+### Cloud Mode Quotas
+
+If using Vega AI in cloud mode (https://vega.benidevo.com):
+- **10 AI analyses per month** (free tier)
+- Unlimited job tracking and browsing
+- Admin users have unlimited quotas
+
+<Note>
+  Self-hosted instances have unlimited quotas by default, limited only by your Gemini API key limits.
+</Note>
+
+### Monitoring Usage
+
+For self-hosted instances, monitor your Gemini API usage:
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Check your API usage dashboard
+3. Set up billing alerts if needed
+
+## Implementation Details
+
+### Architecture
+
+The Gemini integration is structured as:
+
+```
+internal/ai/
+├── llm/
+│   ├── interface.go          # Provider interface
+│   └── gemini/
+│       ├── client.go         # Main Gemini client
+│       ├── config.go         # Configuration
+│       ├── cache.go          # Response caching
+│       └── deduplicator.go   # Request deduplication
+├── services/
+│   ├── cv_parser.go          # CV parsing service
+│   ├── job_matcher.go        # Job matching service
+│   ├── letter_generator.go   # Cover letter generation
+│   └── cv_generator.go       # CV generation
+└── prompts/
+    └── templates.go          # AI prompt templates
+```
+
+### Request Flow
+
+<Steps>
+  <Step title="User Action">
+    User triggers an AI feature (e.g., "Analyze Match")
+  </Step>
+
+  <Step title="Service Layer">
+    Service builds a prompt using user profile and job data
+  </Step>
+
+  <Step title="Cache Check">
+    Client checks if a cached response exists for this request
+  </Step>
+
+  <Step title="Deduplication">
+    If no cache hit, check if an identical request is in-flight
+  </Step>
+
+  <Step title="API Call">
+    Make request to Gemini API with retry logic
+  </Step>
+
+  <Step title="Response Parsing">
+    Parse and validate JSON response from Gemini
+  </Step>
+
+  <Step title="Cache & Return">
+    Cache the response and return to user
+  </Step>
+</Steps>
+
+### Error Handling
+
+The integration includes robust error handling:
+
+- **Automatic Retries**: Up to 3 retries with exponential backoff
+- **Circuit Breaking**: Prevents cascading failures
+- **Graceful Degradation**: Fallback to default values when appropriate
+- **Detailed Logging**: Comprehensive error messages for debugging
+
+### Code Example
+
+Here's how the Gemini client is initialized:
+
+```go internal/ai/llm/gemini/client.go
+package gemini
+
+import (
+    "context"
+    "google.golang.org/genai"
+)
+
+func New(ctx context.Context, cfg *Config) (*Gemini, error) {
+    client, err := genai.NewClient(ctx, &genai.ClientConfig{
+        APIKey:  cfg.APIKey,
+        Backend: genai.BackendGeminiAPI,
+    })
+    if err != nil {
+        return nil, WrapError(ErrClientInitFailed, err)
+    }
+
+    cache := NewResponseCache(cfg.CacheMaxEntries, cfg.CacheTTL)
+    deduplicator := NewRequestDeduplicator()
+
+    return &Gemini{
+        client:       client,
+        cfg:          cfg,
+        cache:        cache,
+        deduplicator: deduplicator,
+    }, nil
+}
+```
+
+## Troubleshooting
+
+### API Key Not Working
+
+**Problem**: "Invalid API key" or authentication errors.
+
+**Solutions**:
+1. Verify your API key is correct (no extra spaces or characters)
+2. Check that your API key is enabled in Google AI Studio
+3. Ensure your Google Cloud project has the Gemini API enabled
+4. Verify the API key hasn't expired or been revoked
+
+```bash
+# Test your API key
+curl -H "Content-Type: application/json" \
+  -d '{"contents":[{"parts":[{"text":"Hello"}]}]}' \
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_API_KEY"
+```
+
+### Rate Limit Errors
+
+**Problem**: "Rate limit exceeded" or 429 errors.
+
+**Solutions**:
+- Wait a few minutes before retrying
+- Enable response caching (should be enabled by default)
+- Reduce concurrent AI operations
+- Consider upgrading to a paid plan for higher limits
+
+```bash
+# Check cache configuration
+CACHE_MAX_MEMORY_MB=256
+CACHE_DEFAULT_TTL=1h
+```
+
+### Poor AI Responses
+
+**Problem**: AI generates inaccurate or low-quality responses.
+
+**Solutions**:
+1. **Improve your profile**: Add more detailed work experience and skills
+2. **Provide complete job descriptions**: More context = better analysis
+3. **Check model configuration**: Ensure you're using appropriate models
+4. **Review prompts**: The AI is only as good as the data it receives
+
+### Slow Response Times
+
+**Problem**: AI features take too long to respond.
+
+**Solutions**:
+- Check your internet connection
+- Verify Gemini API status at [Google Cloud Status](https://status.cloud.google.com/)
+- Ensure caching is enabled and working
+- Consider using faster models (gemini-2.5-flash)
+- Check for API quota limits
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Optimize Profile" icon="user">
+    Keep your profile up-to-date with detailed work experience and skills for better AI analysis
+  </Card>
+  
+  <Card title="Monitor Usage" icon="chart-line">
+    Regularly check your API usage to avoid unexpected quota limits
+  </Card>
+  
+  <Card title="Secure Keys" icon="lock">
+    Always use environment variables or secrets management for API keys
+  </Card>
+  
+  <Card title="Test Changes" icon="flask">
+    Test configuration changes in development before deploying to production
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+- [Google Gemini API Documentation](https://ai.google.dev/docs)
+- [Gemini API Pricing](https://ai.google.dev/pricing)
+- [Vega AI Source Code](https://github.com/benidevo/vega-ai/tree/main/internal/ai)
+- [Get Support](https://github.com/benidevo/vega-ai/issues)

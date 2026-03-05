@@ -1,97 +1,157 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Vega AI Documentation"
+description: "Navigate your career journey with AI-powered precision"
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #0c8d85 0%, #0c545c 100%)',
+  padding: '4rem 2rem',
+  borderRadius: '8px',
+  marginBottom: '3rem',
+  textAlign: 'center'
+}}>
+  <h1 style={{
+    fontSize: '2.5rem',
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: '1rem'
+  }}>
+    Navigate Your Career Journey with AI
+  </h1>
+  <p style={{
+    fontSize: '1.25rem',
+    color: '#ffffff',
+    marginBottom: '2rem',
+    opacity: '0.95'
+  }}>
+    Track applications, generate tailored documents, and get intelligent job matching powered by AI
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+    <a href="/getting-started/quickstart" style={{
+      background: '#1f8c7a',
+      color: '#ffffff',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '6px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>
+      Get Started
+    </a>
+    <a href="https://github.com/DanielPopoola/vega-ai" style={{
+      background: 'transparent',
+      color: '#ffffff',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '6px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      border: '2px solid #ffffff',
+      display: 'inline-block'
+    }}>
+      View on GitHub
+    </a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## What is Vega AI?
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Vega AI is an intelligent job application tracking system that transforms how job seekers manage their search. Just as ancient navigators used the star Vega to find their way, Vega AI helps you navigate your career journey with AI-powered tools for job tracking, matching, and document generation.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Self-Hosted or Cloud" icon="server" href="/getting-started/cloud-vs-selfhost">
+    Deploy Vega AI on your own infrastructure for complete data privacy, or use our cloud service
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="AI-Powered Matching" icon="brain" href="/features/ai-matching">
+    Get intelligent compatibility scores and detailed analysis for every job opportunity
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Document Generation" icon="file-lines" href="/features/document-generation">
+    Generate tailored cover letters and CVs based on your profile and job requirements
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Browser Extension" icon="puzzle-piece" href="/features/browser-extension">
+    Capture jobs from LinkedIn and other job boards with one click
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Quick Start
 
-Everything you need to create world-class documentation.
+Get Vega AI running in minutes with Docker:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<Steps>
+  <Step title="Get your Gemini API key">
+    Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to get your free API key
+  </Step>
+  
+  <Step title="Create a config file">
+    ```bash
+    mkdir vega-ai && cd vega-ai
+    echo "GEMINI_API_KEY=your-gemini-api-key" > config
+    ```
+  </Step>
+  
+  <Step title="Run with Docker">
+    ```bash
+    docker run --pull always -d \
+      --name vega-ai \
+      -p 8765:8765 \
+      -v vega-data:/app/data \
+      --env-file config \
+      ghcr.io/benidevo/vega-ai:latest
+    ```
+  </Step>
+  
+  <Step title="Access Vega AI">
+    Open [http://localhost:8765](http://localhost:8765) and log in with:
+    - Username: `admin`
+    - Password: `VegaAdmin`
+  </Step>
+</Steps>
 
-## Need inspiration?
+<Note>
+  **Important:** Change your password after first login via Settings → Account
+</Note>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
+## Key Features
+
+<CardGroup cols={3}>
+  <Card title="Job Tracking" icon="briefcase">
+    Track applications with customizable statuses and detailed job information
+  </Card>
+  <Card title="AI Matching" icon="bullseye">
+    Get match scores and compatibility analysis powered by Google Gemini
+  </Card>
+  <Card title="CV Parsing" icon="file-arrow-up">
+    Upload your CV to automatically populate your profile
+  </Card>
+  <Card title="Profile Management" icon="user">
+    Comprehensive professional profile with experience, education, and skills
+  </Card>
+  <Card title="Usage Quotas" icon="gauge">
+    Fair usage limits for AI features in cloud mode
+  </Card>
+  <Card title="Privacy-First" icon="shield">
+    Self-hosted option with complete control over your data
+  </Card>
+</CardGroup>
+
+## Popular Guides
+
+<CardGroup cols={2}>
+  <Card title="Deployment Guide" icon="rocket" href="/deployment/docker">
+    Learn how to deploy Vega AI with Docker, Docker Compose, or Docker Swarm
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/authentication/overview">
+    Explore the REST API for integrating with Vega AI
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture/overview">
+    Understand the system design and technical architecture
+  </Card>
+  <Card title="Browser Extension" icon="puzzle-piece" href="/integrations/browser-extension">
+    Install and configure the job capture extension
+  </Card>
+</CardGroup>
+
+## Community and Support
+
+<Card title="GitHub Repository" icon="github" href="https://github.com/DanielPopoola/vega-ai">
+  Star the project, report issues, or contribute to development
 </Card>

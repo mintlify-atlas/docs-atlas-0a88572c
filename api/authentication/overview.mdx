@@ -1,0 +1,127 @@
+---
+title: 'Authentication Overview'
+description: 'Learn about authentication methods and security in Vega AI API'
+---
+
+## Overview
+
+Vega AI provides multiple authentication methods to secure your API requests and application access. All authenticated endpoints require valid JWT tokens to authorize requests.
+
+## Authentication Methods
+
+<CardGroup cols={2}>
+  <Card title="Username & Password" icon="key" href="/api/authentication/login">
+    Traditional login using username and password credentials
+  </Card>
+  <Card title="Google OAuth" icon="google" href="/api/authentication/google-oauth">
+    Sign in with your Google account for seamless authentication
+  </Card>
+  <Card title="Token Refresh" icon="arrows-rotate" href="/api/authentication/refresh-token">
+    Automatically refresh expired access tokens
+  </Card>
+  <Card title="Token Verification" icon="shield-check">
+    Verify token validity and extract user claims
+  </Card>
+</CardGroup>
+
+## Token Types
+
+Vega AI uses two types of JWT tokens for authentication:
+
+### Access Token
+
+- Short-lived token used for API authentication
+- Must be included in the `Authorization` header as `Bearer {token}`
+- Expires after a configured duration (typically 15-60 minutes)
+- Contains user identity claims (user ID, username, role)
+
+### Refresh Token
+
+- Long-lived token used to obtain new access tokens
+- Stored securely and used only for token refresh operations
+- Expires after a longer duration (typically 7-30 days)
+- Automatically rotated when used to refresh access tokens
+
+## Security Features
+
+<AccordionGroup>
+  <Accordion title="JWT-Based Authentication">
+    All tokens are signed using HMAC-SHA256 to prevent tampering. Each token contains:
+    - User ID and username
+    - User role (ADMIN or STANDARD)
+    - Token type (access or refresh)
+    - Issued at timestamp
+    - Expiration timestamp
+  </Accordion>
+
+  <Accordion title="Password Hashing">
+    User passwords are hashed using bcrypt with a secure cost factor before storage. Passwords are never stored in plain text.
+  </Accordion>
+
+  <Accordion title="Rate Limiting">
+    Login and token refresh endpoints are protected with rate limiting to prevent brute force attacks. Failed login attempts are logged for security monitoring.
+  </Accordion>
+
+  <Accordion title="CSRF Protection">
+    OAuth flows include state parameter validation to prevent cross-site request forgery attacks. State tokens are stored in secure, HTTP-only cookies.
+  </Accordion>
+</AccordionGroup>
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant AuthService
+    
+    Client->>API: POST /api/auth/login
+    API->>AuthService: Validate credentials
+    AuthService-->>API: Generate tokens
+    API-->>Client: Return access_token + refresh_token
+    
+    Client->>API: GET /api/jobs (with access_token)
+    API->>AuthService: Verify token
+    AuthService-->>API: Valid
+    API-->>Client: Return response
+    
+    Note over Client,API: Access token expires
+    
+    Client->>API: POST /api/auth/refresh
+    API->>AuthService: Validate refresh_token
+    AuthService-->>API: Generate new tokens
+    API-->>Client: Return new access_token + refresh_token
+```
+
+## Making Authenticated Requests
+
+Once you have an access token, include it in the `Authorization` header of all API requests:
+
+```bash
+curl -X GET https://api.vega.ai/api/jobs \
+  -H "Authorization: Bearer your_access_token_here"
+```
+
+<Note>
+  **Token Storage**: Store tokens securely on the client side. Avoid storing tokens in localStorage for web applications. Use secure, HTTP-only cookies or memory storage instead.
+</Note>
+
+## Error Handling
+
+Authentication endpoints return standard HTTP status codes:
+
+- `200 OK` - Authentication successful
+- `400 Bad Request` - Invalid request body or missing required fields
+- `401 Unauthorized` - Invalid credentials or expired token
+- `429 Too Many Requests` - Rate limit exceeded
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Login Endpoint" icon="right-to-bracket" href="/api/authentication/login">
+    Authenticate with username and password
+  </Card>
+  <Card title="Refresh Token" icon="arrows-rotate" href="/api/authentication/refresh-token">
+    Learn how to refresh expired tokens
+  </Card>
+</CardGroup>

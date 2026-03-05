@@ -1,0 +1,261 @@
+---
+title: 'Get Quota Status'
+description: 'Check your monthly job capture quota usage'
+---
+
+## Endpoint
+
+```
+GET /api/jobs/quota
+```
+
+Retrieves your current quota status for job captures. This endpoint helps you monitor your API usage and plan accordingly.
+
+## Authentication
+
+Requires a valid Bearer token in the Authorization header.
+
+```bash
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+## Request
+
+This endpoint does not require any request body or query parameters. Simply make a GET request with your authentication token.
+
+## Response Fields
+
+<ResponseField name="used" type="integer">
+  The number of jobs you have captured this month.
+  
+  **Example:** `15`
+</ResponseField>
+
+<ResponseField name="limit" type="integer">
+  Your monthly job capture limit. A value of `-1` indicates unlimited quota.
+  
+  **Example:** `50` or `-1` (unlimited)
+</ResponseField>
+
+<ResponseField name="remaining" type="integer">
+  The number of job captures remaining this month. Returns `-1` for unlimited plans.
+  
+  **Example:** `35` or `-1` (unlimited)
+</ResponseField>
+
+<ResponseField name="reset_date" type="string">
+  The date when your quota will reset, in `YYYY-MM-DD` format.
+  
+  **Example:** `"2024-02-01"`
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.vegaai.com/api/jobs/quota \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.vegaai.com/api/jobs/quota', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = 'https://api.vegaai.com/api/jobs/quota'
+headers = {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+}
+
+response = requests.get(url, headers=headers)
+print(response.json())
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+func main() {
+    url := "https://api.vegaai.com/api/jobs/quota"
+    
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    
+    var result map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Println(result)
+}
+```
+</CodeGroup>
+
+## Example Response
+
+<CodeGroup>
+```json 200 - Success (Limited Plan)
+{
+  "used": 15,
+  "limit": 50,
+  "remaining": 35,
+  "reset_date": "2024-02-01"
+}
+```
+
+```json 200 - Success (Unlimited Plan)
+{
+  "used": 147,
+  "limit": -1,
+  "remaining": -1,
+  "reset_date": "2024-02-01"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized"
+}
+```
+
+```json 500 - Internal Server Error
+{
+  "error": "Failed to get quota status"
+}
+```
+</CodeGroup>
+
+## Understanding Quota Limits
+
+<AccordionGroup>
+  <Accordion title="What counts toward my quota?">
+    Only **newly created jobs** count toward your monthly quota. If you attempt to create a job with a source URL that already exists in your tracker, it will not consume quota.
+    
+    Actions that count:
+    - Creating a new job via API
+    - Capturing a new job via browser extension
+    
+    Actions that don't count:
+    - Updating an existing job
+    - Creating a duplicate job (same source URL)
+    - Viewing or analyzing existing jobs
+  </Accordion>
+  
+  <Accordion title="How do unlimited quotas work?">
+    Premium and enterprise plans have unlimited job capture quotas. For these plans:
+    - `limit` will be `-1`
+    - `remaining` will be `-1`
+    - `used` will show your actual usage for tracking purposes
+    - You can create as many jobs as needed
+  </Accordion>
+  
+  <Accordion title="When does my quota reset?">
+    Your quota resets on the first day of each month, as indicated by the `reset_date` field. The reset happens at midnight UTC.
+    
+    After the reset:
+    - `used` returns to 0
+    - `remaining` returns to your full limit
+    - Previous month's data is archived
+  </Accordion>
+  
+  <Accordion title="What happens when I reach my limit?">
+    When your quota is exhausted (`remaining` reaches 0):
+    - API requests to create new jobs will fail with a 403 error
+    - Browser extension will display a quota exceeded message
+    - You can still view, update, and analyze existing jobs
+    - You can upgrade your plan for a higher quota
+  </Accordion>
+</AccordionGroup>
+
+## Usage Examples
+
+### Check Before Creating a Job
+
+```javascript
+// Check quota before creating a job
+const quotaResponse = await fetch('https://api.vegaai.com/api/jobs/quota', {
+  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }
+});
+
+const quota = await quotaResponse.json();
+
+if (quota.remaining > 0 || quota.remaining === -1) {
+  // Safe to create job
+  const jobResponse = await fetch('https://api.vegaai.com/api/jobs', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_TOKEN',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(jobData)
+  });
+} else {
+  console.log('Quota exceeded. Resets on:', quota.reset_date);
+}
+```
+
+### Monitor Quota Usage
+
+```python
+import requests
+from datetime import datetime
+
+def check_quota_status():
+    url = 'https://api.vegaai.com/api/jobs/quota'
+    headers = {'Authorization': 'Bearer YOUR_API_TOKEN'}
+    
+    response = requests.get(url, headers=headers)
+    quota = response.json()
+    
+    if quota['limit'] == -1:
+        print(f"Unlimited plan - Used: {quota['used']} jobs")
+    else:
+        percentage = (quota['used'] / quota['limit']) * 100
+        print(f"Quota usage: {quota['used']}/{quota['limit']} ({percentage:.1f}%)")
+        print(f"Remaining: {quota['remaining']} jobs")
+        print(f"Resets on: {quota['reset_date']}")
+        
+        if quota['remaining'] < 10:
+            print("Warning: Low quota remaining!")
+
+check_quota_status()
+```
+
+## Source Code Reference
+
+The implementation can be found in:
+- Handler: [`internal/api/job/handlers.go:127`](https://github.com/benidevo/vega/blob/main/internal/api/job/handlers.go#L127)
+- Routes: [`internal/api/job/routes.go:12`](https://github.com/benidevo/vega/blob/main/internal/api/job/routes.go#L12)
+- Quota Models: [`internal/quota/models/`](https://github.com/benidevo/vega/tree/main/internal/quota/models)
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Create Job" icon="plus" href="/api/jobs/create-job">
+    Add jobs to your tracker
+  </Card>
+  
+  <Card title="Jobs API Overview" icon="book" href="/api/jobs/overview">
+    Learn about the Jobs API
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Best Practice:** Check your quota status regularly, especially if you're running automated job capture scripts or processing jobs in batches.
+</Tip>

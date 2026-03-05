@@ -1,0 +1,635 @@
+---
+title: 'Docker Swarm Deployment'
+description: 'Deploy Vega AI in Docker Swarm mode for high availability'
+---
+
+## Overview
+
+Docker Swarm provides orchestration for running Vega AI in a clustered environment with high availability, automatic failover, and easy scaling.
+
+## Prerequisites
+
+- Docker Engine 20.10 or later with Swarm mode enabled
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Basic understanding of Docker Swarm concepts
+
+## Important Limitation
+
+Docker Stack Deploy has a [known limitation](https://github.com/moby/moby/issues/29133) where it **doesn't automatically read `.env` files** like `docker compose up` does. Environment variables must be handled differently when deploying to a Swarm.
+
+## Deployment Methods
+
+### Method 1: Using docker-compose config (Recommended)
+
+This method processes your `.env` file and creates a fully resolved configuration.
+
+<Steps>
+  <Step title="Initialize Docker Swarm">
+    ```bash
+    docker swarm init
+    ```
+
+    For multi-node clusters, join worker nodes:
+    ```bash
+    # On manager node, get join token
+    docker swarm join-token worker
+
+    # On worker nodes, run the displayed command
+    docker swarm join --token SWMTKN-... <manager-ip>:2377
+    ```
+  </Step>
+
+  <Step title="Create configuration files">
+    Create `docker-compose.yml`:
+
+    ```yaml docker-compose.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        ports:
+          - "8765:8765"
+        volumes:
+          - vega-data:/app/data
+        environment:
+          - GEMINI_API_KEY=${GEMINI_API_KEY}
+          - TOKEN_SECRET=${TOKEN_SECRET}
+          - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+          - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+        deploy:
+          replicas: 1
+          restart_policy:
+            condition: on-failure
+            delay: 5s
+            max_attempts: 3
+          update_config:
+            parallelism: 1
+            delay: 10s
+            order: stop-first
+
+    volumes:
+      vega-data:
+    ```
+
+    Create `.env` file:
+
+    ```bash .env
+    GEMINI_API_KEY=your-gemini-api-key
+    TOKEN_SECRET=your-super-secret-jwt-key
+    ADMIN_USERNAME=admin
+    ADMIN_PASSWORD=YourSecurePassword
+    ```
+  </Step>
+
+  <Step title="Deploy the stack">
+    ```bash
+    docker-compose config | docker stack deploy -c - vega-stack
+    ```
+
+    This command:
+    - Reads your `.env` file
+    - Substitutes all variables in your `docker-compose.yml`
+    - Pipes the processed configuration to `docker stack deploy`
+  </Step>
+
+  <Step title="Verify deployment">
+    ```bash
+    # Check stack services
+    docker stack services vega-stack
+
+    # Check service logs
+    docker service logs vega-stack_vega-ai
+
+    # List all running tasks
+    docker stack ps vega-stack
+    ```
+  </Step>
+</Steps>
+
+### Method 2: Inline Environment Variables
+
+For simpler deployments, specify environment variables directly in `docker-compose.yml`:
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    environment:
+      - GEMINI_API_KEY=your-gemini-api-key
+      - TOKEN_SECRET=your-super-secret-jwt-key
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=YourSecurePassword
+    ports:
+      - "8765:8765"
+    volumes:
+      - vega-data:/app/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  vega-data:
+```
+
+<Warning>
+  This method exposes secrets in the compose file. Use Method 3 for production.
+</Warning>
+
+Deploy with:
+
+```bash
+docker stack deploy -c docker-compose.yml vega-stack
+```
+
+### Method 3: Using Docker Secrets (Recommended for Production)
+
+Docker Secrets provide a secure way to manage sensitive data. Vega AI supports reading environment variables from files using the `_FILE` suffix pattern.
+
+<Steps>
+  <Step title="Initialize Docker Swarm">
+    ```bash
+    docker swarm init
+    ```
+  </Step>
+
+  <Step title="Create Docker secrets">
+    ```bash
+    # Create secrets from literals
+    echo "your-gemini-api-key" | docker secret create gemini_api_key -
+    echo "your-secure-token" | docker secret create token_secret -
+    echo "YourSecurePassword" | docker secret create admin_password -
+
+    # Or create from files
+    docker secret create gemini_api_key ./secrets/gemini_api_key.txt
+    docker secret create token_secret ./secrets/token_secret.txt
+    docker secret create admin_password ./secrets/admin_password.txt
+    ```
+
+    <Note>
+      Verify secrets were created: `docker secret ls`
+    </Note>
+  </Step>
+
+  <Step title="Create docker-compose.secrets.yml">
+    ```yaml docker-compose.secrets.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        ports:
+          - "8765:8765"
+        volumes:
+          - vega-data:/app/data
+        environment:
+          - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+          - TOKEN_SECRET_FILE=/run/secrets/token_secret
+          - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
+          - ADMIN_USERNAME=admin
+        secrets:
+          - gemini_api_key
+          - token_secret
+          - admin_password
+        deploy:
+          replicas: 1
+          restart_policy:
+            condition: on-failure
+            delay: 5s
+            max_attempts: 3
+          update_config:
+            parallelism: 1
+            delay: 10s
+            order: stop-first
+
+    secrets:
+      gemini_api_key:
+        external: true
+      token_secret:
+        external: true
+      admin_password:
+        external: true
+
+    volumes:
+      vega-data:
+    ```
+  </Step>
+
+  <Step title="Deploy the stack">
+    ```bash
+    docker stack deploy -c docker-compose.secrets.yml vega-stack
+    ```
+  </Step>
+</Steps>
+
+#### Benefits of Docker Secrets
+
+- **Encrypted at rest and in transit** - Secrets are encrypted in Swarm's Raft log
+- **Access control** - Only authorized services can access secrets
+- **No exposure in environment** - Secrets aren't visible in `docker inspect`
+- **Rotation support** - Update secrets without redeploying
+- **Security validation** - Path validation prevents directory traversal attacks
+- **Size limits** - 1MB limit prevents memory exhaustion
+
+## Stack Configuration
+
+### Production Configuration
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    ports:
+      - target: 8765
+        published: 8765
+        protocol: tcp
+        mode: host
+    volumes:
+      - vega-data:/app/data
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - LOG_LEVEL=info
+      - COOKIE_SECURE=true
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+volumes:
+  vega-data:
+    driver: local
+```
+
+### High Availability Configuration
+
+<Warning>
+  SQLite doesn't support concurrent writes from multiple replicas. Use `replicas: 1` with placement constraints for high availability through automatic failover.
+</Warning>
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    ports:
+      - "8765:8765"
+    volumes:
+      - vega-data:/app/data
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.storage == true
+        preferences:
+          - spread: node.labels.datacenter
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+        failure_action: rollback
+        monitor: 30s
+
+volumes:
+  vega-data:
+```
+
+## Stack Management
+
+### View Stack Status
+
+```bash
+# List all stacks
+docker stack ls
+
+# List services in stack
+docker stack services vega-stack
+
+# List tasks in stack
+docker stack ps vega-stack
+
+# Show only running tasks
+docker stack ps --filter "desired-state=running" vega-stack
+```
+
+### Service Logs
+
+```bash
+# Follow logs in real-time
+docker service logs -f vega-stack_vega-ai
+
+# View last 100 lines
+docker service logs --tail 100 vega-stack_vega-ai
+
+# View logs with timestamps
+docker service logs --timestamps vega-stack_vega-ai
+```
+
+### Scale Services
+
+```bash
+# Scale to 3 replicas (NOT recommended for SQLite)
+docker service scale vega-stack_vega-ai=3
+
+# Scale back to 1
+docker service scale vega-stack_vega-ai=1
+```
+
+<Note>
+  Keep `replicas: 1` for Vega AI due to SQLite limitations.
+</Note>
+
+### Update Services
+
+```bash
+# Update to latest image
+docker service update --image ghcr.io/benidevo/vega-ai:latest vega-stack_vega-ai
+
+# Update environment variable
+docker service update --env-add LOG_LEVEL=debug vega-stack_vega-ai
+
+# Force update (recreate tasks)
+docker service update --force vega-stack_vega-ai
+```
+
+### Rolling Updates
+
+```bash
+# Update stack with new configuration
+docker-compose config | docker stack deploy -c - vega-stack
+
+# The deployment configuration controls update behavior:
+# - parallelism: 1 (update one task at a time)
+# - delay: 10s (wait between updates)
+# - order: stop-first (stop old task before starting new)
+```
+
+### Rollback Deployment
+
+```bash
+# Rollback to previous version
+docker service rollback vega-stack_vega-ai
+
+# Or manually update to specific version
+docker service update --image ghcr.io/benidevo/vega-ai:v1.0.0 vega-stack_vega-ai
+```
+
+### Remove Stack
+
+```bash
+# Remove the stack (keeps volumes)
+docker stack rm vega-stack
+
+# Remove volumes separately if needed
+docker volume rm vega-stack_vega-data
+```
+
+## Troubleshooting
+
+### Environment Variables Not Loading
+
+1. **Verify `.env` file exists and is readable:**
+   ```bash
+   cat .env
+   ```
+
+2. **Check for syntax errors:**
+   ```bash
+   # No spaces around = signs
+   # WRONG: GEMINI_API_KEY = value
+   # RIGHT: GEMINI_API_KEY=value
+   ```
+
+3. **Use docker-compose config to verify variable substitution:**
+   ```bash
+   docker-compose config
+   ```
+
+4. **Check service environment:**
+   ```bash
+   docker service inspect vega-stack_vega-ai --format='{{json .Spec.TaskTemplate.ContainerSpec.Env}}' | jq
+   ```
+
+### Default Credentials Warning
+
+If you see warnings about default credentials:
+
+- Environment variables weren't passed correctly
+- Use Method 1 (docker-compose config) to ensure proper variable substitution
+- Verify variables in service with `docker service inspect`
+
+### Service Won't Start
+
+1. **Check service logs:**
+   ```bash
+   docker service logs vega-stack_vega-ai
+   ```
+
+2. **Inspect service details:**
+   ```bash
+   docker service inspect vega-stack_vega-ai
+   ```
+
+3. **Check node availability:**
+   ```bash
+   docker node ls
+   ```
+
+4. **Verify image is accessible:**
+   ```bash
+   docker pull ghcr.io/benidevo/vega-ai:latest
+   ```
+
+### Volume Issues
+
+1. **Check volume exists:**
+   ```bash
+   docker volume ls | grep vega
+   ```
+
+2. **Inspect volume:**
+   ```bash
+   docker volume inspect vega-stack_vega-data
+   ```
+
+3. **Check volume permissions:**
+   ```bash
+   docker run --rm -v vega-stack_vega-data:/data alpine ls -la /data
+   ```
+
+### Network Issues
+
+1. **List overlay networks:**
+   ```bash
+   docker network ls
+   ```
+
+2. **Inspect stack network:**
+   ```bash
+   docker network inspect vega-stack_default
+   ```
+
+3. **Test connectivity:**
+   ```bash
+   docker run --rm --network vega-stack_default alpine ping vega-stack_vega-ai
+   ```
+
+## Secrets Management
+
+### List Secrets
+
+```bash
+docker secret ls
+```
+
+### Inspect Secret (metadata only)
+
+```bash
+docker secret inspect gemini_api_key
+```
+
+### Update Secrets
+
+```bash
+# Create new secret version
+echo "new-api-key" | docker secret create gemini_api_key_v2 -
+
+# Update service to use new secret
+docker service update \
+  --secret-rm gemini_api_key \
+  --secret-add source=gemini_api_key_v2,target=gemini_api_key \
+  vega-stack_vega-ai
+
+# Remove old secret
+docker secret rm gemini_api_key
+```
+
+### Remove Unused Secrets
+
+```bash
+# List secrets
+docker secret ls
+
+# Remove secret
+docker secret rm old_secret_name
+```
+
+## Monitoring
+
+### Service Status
+
+```bash
+# Watch service status
+watch docker service ps vega-stack_vega-ai
+
+# Check replica status
+docker service ls
+```
+
+### Resource Usage
+
+```bash
+# Node resource usage
+docker node ps $(docker node ls -q)
+
+# System-wide stats
+docker stats
+```
+
+### Health Checks
+
+Add health checks to your stack configuration:
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8765/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # ... rest of configuration
+```
+
+Check health status:
+
+```bash
+docker service ps vega-stack_vega-ai --format "{{.Name}}: {{.CurrentState}}"
+```
+
+## Backup and Restore
+
+### Backup in Swarm Mode
+
+```bash
+# Find which node is running the service
+NODE=$(docker service ps vega-stack_vega-ai --format '{{.Node}}' | head -1)
+
+# Create backup (run on the node)
+docker run --rm \
+  -v vega-stack_vega-data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  cp /data/vega.db /backup/vega-$(date +%Y%m%d).db
+```
+
+### Restore in Swarm Mode
+
+```bash
+# Remove stack
+docker stack rm vega-stack
+
+# Wait for stack to be removed
+docker stack ls
+
+# Restore data
+docker run --rm \
+  -v vega-stack_vega-data:/data \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  sh -c "rm -f /data/* && cp /backup/vega-20260305.db /data/vega.db"
+
+# Redeploy stack
+docker-compose config | docker stack deploy -c - vega-stack
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="sliders" href="/deployment/environment-variables">
+    Complete configuration reference
+  </Card>
+  <Card title="Docker Compose" icon="layer-group" href="/deployment/docker-compose">
+    Simpler single-server deployment
+  </Card>
+</CardGroup>

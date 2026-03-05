@@ -1,0 +1,360 @@
+---
+title: 'Development Setup'
+description: 'Set up your local development environment for Vega AI'
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) - For containerized development
+- [Docker Compose](https://docs.docker.com/compose/) - For orchestrating multi-container apps
+- [Go 1.24+](https://golang.org/) - For local Go development (optional)
+- [Node.js](https://nodejs.org/) - For frontend build tools
+- [Google Gemini API key](https://aistudio.google.com/app/apikey) - Required for AI features
+
+## Quick Start
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/benidevo/vega-ai.git
+    cd vega-ai
+    ```
+  </Step>
+
+  <Step title="Set up environment variables">
+    Create a `.env` file with your configuration:
+
+    ```bash
+    # Create .env file
+    cat > .env << EOF
+    # Required
+    GEMINI_API_KEY=your-gemini-api-key
+    TOKEN_SECRET=your-jwt-secret
+
+    # Optional - for cloud mode
+    CLOUD_MODE=false
+    GOOGLE_CLIENT_ID=your-client-id
+    GOOGLE_CLIENT_SECRET=your-client-secret
+    EOF
+    ```
+
+    <Note>
+      Generate a secure `TOKEN_SECRET` using: `openssl rand -base64 32`
+    </Note>
+  </Step>
+
+  <Step title="Start development environment">
+    Use the Makefile command to build and start the containers:
+
+    ```bash
+    make run
+    ```
+
+    This command will:
+    - Build the Docker image from `docker/dev/Dockerfile`
+    - Start the application container
+    - Start the SQLite web dashboard for database inspection
+    - Mount your local directory for live code reloading
+  </Step>
+
+  <Step title="Access the application">
+    Once the containers are running:
+
+    - **Web interface**: http://localhost:8765
+    - **Database dashboard**: http://localhost:8080
+    - Default credentials:
+      - Username: `admin`
+      - Password: `VegaAdmin`
+
+    <Note>
+      The application automatically reloads when you make code changes.
+    </Note>
+  </Step>
+</Steps>
+
+## Development Commands
+
+The project includes a Makefile with helpful commands:
+
+| Command | Description |
+|---------|-------------|
+| `make run` | Start development environment in detached mode |
+| `make run-it` | Start development environment with interactive logs |
+| `make restart` | Rebuild and restart containers |
+| `make stop` | Stop all containers |
+| `make logs` | View container logs (follows last 100 lines) |
+| `make enter-app` | Open shell inside app container |
+| `make test` | Run test suite with coverage |
+| `make test-verbose` | Run tests with verbose output |
+| `make format` | Format code with `gofmt` and run `go vet` |
+
+### Example Usage
+
+<CodeGroup>
+
+```bash View Logs
+# Follow logs in real-time
+make logs
+```
+
+```bash Rebuild After Dependencies Change
+# Rebuild containers and restart
+make restart
+```
+
+```bash Enter Container Shell
+# Access the app container shell for debugging
+make enter-app
+```
+
+</CodeGroup>
+
+## Frontend Development
+
+### CSS Build Process
+
+Vega AI uses Tailwind CSS with a build process that optimizes CSS delivery. The production CSS is ~46KB compared to the 340KB CDN version.
+
+<Steps>
+  <Step title="Install Node.js dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+
+  <Step title="Build CSS for production">
+    ```bash
+    npm run build
+    ```
+
+    This generates an optimized `static/css/output.css` file with only the styles used in your templates.
+  </Step>
+
+  <Step title="Development with auto-rebuild">
+    For active development, run the watcher:
+
+    ```bash
+    npm run dev
+    ```
+
+    This watches for changes in your templates and automatically rebuilds the CSS.
+  </Step>
+</Steps>
+
+### Template Structure
+
+The frontend is built with Go templates:
+
+```plaintext
+templates/
+├── layouts/
+│   └── base.html          # Base layout with CSS/JS includes
+├── partials/              # Reusable template components
+│   ├── header.html
+│   ├── footer.html
+│   └── ...
+└── pages/                 # Page-specific templates
+
+static/
+├── css/
+│   ├── input.css         # Source Tailwind CSS
+│   └── output.css        # Generated (gitignored)
+└── js/                   # JavaScript files
+```
+
+## Project Structure
+
+Understanding the codebase organization:
+
+```plaintext
+vega-ai/
+├── cmd/vega/              # Application entry point
+├── internal/              # Private application code
+│   ├── auth/             # Authentication & authorization
+│   ├── job/              # Job management
+│   ├── ai/               # AI integration (Gemini)
+│   ├── settings/         # User settings & profiles
+│   ├── documents/        # Document generation
+│   ├── quota/            # Usage quota management
+│   └── common/           # Shared utilities
+├── templates/            # HTML templates
+├── static/              # Static assets
+├── migrations/          # Database migrations
+│   └── sqlite/         # SQLite migration files
+├── docker/              # Docker configurations
+│   ├── dev/            # Development Dockerfile
+│   └── prod/           # Production Dockerfile
+├── scripts/             # Build and utility scripts
+└── docs/                # Documentation
+```
+
+### Key Directories
+
+<CardGroup cols={2}>
+  <Card title="internal/auth" icon="lock">
+    User authentication, JWT tokens, OAuth integration
+  </Card>
+  
+  <Card title="internal/job" icon="briefcase">
+    Job tracking, company management, match results
+  </Card>
+  
+  <Card title="internal/ai" icon="brain">
+    AI services: CV parsing, job matching, document generation
+  </Card>
+  
+  <Card title="internal/quota" icon="gauge">
+    Usage quota tracking and enforcement for cloud mode
+  </Card>
+</CardGroup>
+
+## Environment Variables
+
+### Core Application Settings
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TOKEN_SECRET` | Yes | JWT secret for user sessions |
+| `GEMINI_API_KEY` | Yes | Google AI API key |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
+
+### Admin User Management
+
+<Note>
+  Admin user creation is only available in self-hosted mode. In cloud mode, admin privileges must be granted manually in the database.
+</Note>
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ADMIN_USERNAME` | No | `admin` | Admin username (3-50 characters) |
+| `ADMIN_PASSWORD` | No | `VegaAdmin` | Admin password (8-64 characters) |
+| `RESET_ADMIN_PASSWORD` | No | `false` | Reset admin password on startup |
+
+### CORS Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CORS_ALLOWED_ORIGINS` | No | `*` | Comma-separated list of allowed origins |
+| `CORS_ALLOW_CREDENTIALS` | No | `false` | Allow credentials in CORS requests |
+
+<CodeGroup>
+
+```bash Development
+# Allow all origins
+CORS_ALLOWED_ORIGINS=*
+CORS_ALLOW_CREDENTIALS=false
+```
+
+```bash Production
+# Specific origins only
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://api.yourdomain.com
+CORS_ALLOW_CREDENTIALS=true
+```
+
+</CodeGroup>
+
+## Database
+
+Vega AI uses SQLite for data storage:
+
+- **Location**: `data/vega.db` (in Docker volume)
+- **Migrations**: Automatic on startup
+- **Schema**: Located in `migrations/sqlite/`
+- **Dashboard**: Available at http://localhost:8080 during development
+
+### Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `make migrate-create` | Create a new migration file |
+| `make migrate-up` | Run pending migrations |
+| `make migrate-down` | Rollback last migration |
+| `make migrate-reset` | Rollback all migrations |
+| `make migrate-force` | Force migration to specific version |
+
+## Git Hooks
+
+Set up pre-commit hooks for code quality:
+
+```bash
+make setup-hooks
+```
+
+This configures a pre-commit hook that:
+- Checks code formatting with `gofmt`
+- Runs `go vet` for static analysis
+- Runs inside Docker containers for consistency
+
+## Troubleshooting
+
+### Port Already in Use
+
+If port 8765 is already in use:
+
+```bash
+# Find and stop conflicting container
+docker ps
+docker stop <container-id>
+
+# Or kill the process using the port
+lsof -ti:8765 | xargs kill -9
+```
+
+### Database Locked
+
+If you encounter database lock errors:
+
+```bash
+make restart
+```
+
+### Permission Denied
+
+If you have permission issues with the data directory:
+
+```bash
+# Check permissions
+ls -la data/
+
+# Fix ownership (if needed)
+sudo chown -R $USER:$USER data/
+```
+
+### Container Won't Start
+
+View logs to diagnose issues:
+
+```bash
+# View all logs
+make logs
+
+# View specific container logs
+docker compose logs -f app
+```
+
+### Code Changes Not Reflected
+
+Ensure the volume mount is working:
+
+```bash
+# Restart containers
+make restart
+
+# Verify volume mount
+docker compose exec app ls -la /app
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Testing Guide" icon="flask" href="/development/testing">
+    Learn how to write and run tests
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Contribute to Vega AI development
+  </Card>
+</CardGroup>

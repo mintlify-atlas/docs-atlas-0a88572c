@@ -1,0 +1,587 @@
+---
+title: 'Contributing Guide'
+description: 'Learn how to contribute to Vega AI development'
+---
+
+## Welcome
+
+Thank you for considering contributing to Vega AI! This guide will help you get started with contributing code, documentation, bug reports, and feature requests.
+
+## Getting Started
+
+<Steps>
+  <Step title="Fork the repository">
+    Create your own fork of the Vega AI repository:
+    
+    ```bash
+    # Visit https://github.com/benidevo/vega-ai
+    # Click the "Fork" button in the top right
+    ```
+  </Step>
+
+  <Step title="Clone your fork">
+    ```bash
+    git clone https://github.com/YOUR-USERNAME/vega-ai.git
+    cd vega-ai
+    ```
+  </Step>
+
+  <Step title="Add upstream remote">
+    ```bash
+    git remote add upstream https://github.com/benidevo/vega-ai.git
+    ```
+  </Step>
+
+  <Step title="Create a feature branch">
+    ```bash
+    git checkout -b feature/amazing-feature
+    ```
+
+    Use descriptive branch names:
+    - `feature/job-search-filters`
+    - `fix/authentication-bug`
+    - `docs/api-documentation`
+  </Step>
+</Steps>
+
+## Development Workflow
+
+### 1. Set Up Development Environment
+
+Follow the [Development Setup](/development/setup) guide to configure your local environment.
+
+### 2. Make Your Changes
+
+<Steps>
+  <Step title="Write your code">
+    - Follow the code style guidelines below
+    - Keep changes focused and atomic
+    - Add comments for complex logic
+  </Step>
+
+  <Step title="Add tests">
+    Every new feature or bug fix should include tests:
+
+    ```go
+    func TestNewFeature(t *testing.T) {
+        t.Run("should_work_as_expected", func(t *testing.T) {
+            // Arrange
+            service := setupService()
+            
+            // Act
+            result, err := service.NewFeature()
+            
+            // Assert
+            require.NoError(t, err)
+            require.NotNil(t, result)
+        })
+    }
+    ```
+
+    See the [Testing Guide](/development/testing) for more details.
+  </Step>
+
+  <Step title="Run tests">
+    Ensure all tests pass:
+
+    ```bash
+    make test
+    ```
+  </Step>
+
+  <Step title="Format your code">
+    ```bash
+    make format
+    ```
+
+    This runs `gofmt` and `go vet` to ensure code quality.
+  </Step>
+</Steps>
+
+### 3. Commit Your Changes
+
+Follow our commit message conventions:
+
+<CodeGroup>
+
+```bash Feature
+git commit -m "Add job search filter by location"
+```
+
+```bash Fix
+git commit -m "Fix authentication token expiry issue"
+```
+
+```bash Documentation
+git commit -m "Update API documentation for job endpoints"
+```
+
+```bash Refactor
+git commit -m "Refactor job matching algorithm for better performance"
+```
+
+</CodeGroup>
+
+### 4. Push and Create Pull Request
+
+<Steps>
+  <Step title="Push to your fork">
+    ```bash
+    git push origin feature/amazing-feature
+    ```
+  </Step>
+
+  <Step title="Create Pull Request">
+    1. Visit your fork on GitHub
+    2. Click "Compare & pull request"
+    3. Fill out the PR template with:
+       - Clear description of changes
+       - Related issue numbers
+       - Testing performed
+       - Screenshots (if UI changes)
+  </Step>
+
+  <Step title="Wait for review">
+    - Respond to reviewer feedback
+    - Make requested changes
+    - Push updates to the same branch
+  </Step>
+</Steps>
+
+## Code Style Guidelines
+
+### Go Code Standards
+
+Vega AI follows standard Go conventions and best practices:
+
+#### 1. Formatting
+
+- Use `gofmt` for consistent formatting (run `make format`)
+- Use tabs for indentation
+- Keep lines under 100 characters when practical
+
+#### 2. Naming Conventions
+
+```go
+// ✅ Good: Clear, descriptive names
+func GetUserByID(ctx context.Context, userID int) (*User, error) {
+    // ...
+}
+
+type JobMatchResult struct {
+    Score       float64
+    Explanation string
+}
+
+// ❌ Bad: Unclear or abbreviated names
+func GetUsr(id int) *User {}
+type JMR struct {}
+```
+
+#### 3. Comments
+
+Export all public functions, types, and constants with comments:
+
+```go
+// UserService handles user-related operations including
+// authentication, profile management, and preferences.
+type UserService struct {
+    repo       UserRepository
+    tokenSvc   TokenService
+}
+
+// Register creates a new user account with the provided credentials.
+// It returns an error if the username already exists or validation fails.
+func (s *UserService) Register(ctx context.Context, username, password string) (*User, error) {
+    // Implementation
+}
+```
+
+#### 4. Error Handling
+
+```go
+// ✅ Good: Descriptive error messages with context
+if err != nil {
+    return nil, fmt.Errorf("failed to create user %s: %w", username, err)
+}
+
+// ✅ Good: Custom error types for specific cases
+if errors.Is(err, ErrUserNotFound) {
+    return nil, ErrInvalidCredentials
+}
+
+// ❌ Bad: Silent error swallowing
+if err != nil {
+    log.Println(err)
+    return nil, nil
+}
+```
+
+#### 5. Function Size
+
+Keep functions small and focused:
+
+```go
+// ✅ Good: Single responsibility
+func (s *JobService) CreateJob(ctx context.Context, job *Job) error {
+    if err := s.validateJob(job); err != nil {
+        return err
+    }
+    return s.repo.Create(ctx, job)
+}
+
+func (s *JobService) validateJob(job *Job) error {
+    if job.Title == "" {
+        return ErrInvalidJobTitle
+    }
+    return nil
+}
+
+// ❌ Bad: Function doing too much
+func (s *JobService) CreateJob(ctx context.Context, job *Job) error {
+    // 100+ lines of validation, transformation, and persistence
+}
+```
+
+### Frontend Code Standards
+
+#### 1. HTML Templates
+
+```html
+<!-- ✅ Good: Semantic HTML with clear structure -->
+<article class="job-card">
+  <header class="job-card-header">
+    <h3 class="job-title">{{ .Title }}</h3>
+  </header>
+  <div class="job-details">
+    <p>{{ .Description }}</p>
+  </div>
+</article>
+
+<!-- ❌ Bad: Divs without semantic meaning -->
+<div class="card">
+  <div class="header">
+    <div>{{ .Title }}</div>
+  </div>
+</div>
+```
+
+#### 2. CSS/Tailwind
+
+```html
+<!-- ✅ Good: Consistent spacing, readable classes -->
+<div class="flex items-center gap-4 p-4 bg-white rounded-lg shadow">
+  <img src="logo.png" alt="Company logo" class="w-12 h-12 rounded" />
+  <div>
+    <h3 class="text-lg font-semibold">{{ .CompanyName }}</h3>
+  </div>
+</div>
+
+<!-- ❌ Bad: Inline styles, inconsistent spacing -->
+<div style="display: flex; padding: 20px">
+  <img src="logo.png" style="width: 50px" />
+  <div style="margin-left: 10px">{{ .CompanyName }}</div>
+</div>
+```
+
+## Commit Message Guidelines
+
+### Format
+
+Use the imperative mood and present tense:
+
+```bash
+# ✅ Good
+Add job search filter by location
+Fix authentication token expiry issue
+Update API documentation for job endpoints
+Refactor job matching algorithm
+
+# ❌ Bad
+Added job search filter
+Fixes authentication bug
+Updated documentation
+Refactors matching algorithm
+```
+
+### Structure
+
+```bash
+<type>: <short summary>
+
+<detailed description if needed>
+
+<footer with issue references>
+```
+
+### Examples
+
+<CodeGroup>
+
+```bash Feature
+Add job search filter by location
+
+Implement location-based filtering for job search results.
+Users can now filter jobs by city, state, or country.
+
+Closes #123
+```
+
+```bash Fix
+Fix authentication token expiry issue
+
+Tokens were expiring after 15 minutes instead of the
+configured 7 days. Updated token generation to use
+the correct expiry duration from config.
+
+Fixes #456
+```
+
+```bash Refactor
+Refactor job matching algorithm
+
+Simplify the matching algorithm by extracting common
+logic into helper functions. No functional changes.
+```
+
+</CodeGroup>
+
+### Commit Message Rules
+
+- Use present tense: "Add feature" not "Added feature"
+- Use imperative mood: "Move cursor to..." not "Moves cursor to..."
+- Limit first line to 72 characters
+- Reference issues and pull requests when applicable
+- Provide context in the body for complex changes
+
+## Pre-Commit Hooks
+
+Set up Git hooks to ensure code quality:
+
+```bash
+make setup-hooks
+```
+
+This will automatically:
+- Check code formatting before each commit
+- Run `go vet` for static analysis
+- Prevent commits with formatting issues
+
+The hook runs inside Docker for consistency with CI.
+
+## Pull Request Guidelines
+
+### Before Submitting
+
+<Steps>
+  <Step title="Update from main">
+    ```bash
+    git fetch upstream
+    git rebase upstream/main
+    ```
+  </Step>
+
+  <Step title="Run tests">
+    ```bash
+    make test
+    ```
+  </Step>
+
+  <Step title="Format code">
+    ```bash
+    make format
+    ```
+  </Step>
+
+  <Step title="Review your changes">
+    ```bash
+    git diff upstream/main
+    ```
+  </Step>
+</Steps>
+
+### Pull Request Template
+
+Include the following in your PR description:
+
+```markdown
+## Description
+Clear description of what this PR does and why.
+
+## Related Issues
+Closes #123
+Related to #456
+
+## Type of Change
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+
+## Testing
+Describe the tests you ran and how to reproduce:
+1. Test scenario 1
+2. Test scenario 2
+
+## Screenshots (if applicable)
+[Add screenshots for UI changes]
+
+## Checklist
+- [ ] My code follows the style guidelines
+- [ ] I have performed a self-review
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally
+- [ ] Any dependent changes have been merged and published
+```
+
+### Review Process
+
+1. **Automated Checks**: CI runs tests and linting
+2. **Code Review**: Maintainers review your code
+3. **Changes Requested**: Address feedback and push updates
+4. **Approval**: Once approved, a maintainer will merge
+
+<Note>
+  Be patient and respectful during the review process. Reviewers are volunteers and may take time to respond.
+</Note>
+
+## Types of Contributions
+
+### Bug Reports
+
+Found a bug? Help us fix it!
+
+<Steps>
+  <Step title="Check existing issues">
+    Search [GitHub Issues](https://github.com/benidevo/vega-ai/issues) to avoid duplicates
+  </Step>
+
+  <Step title="Create detailed report">
+    Include:
+    - Clear description of the bug
+    - Steps to reproduce
+    - Expected behavior
+    - Actual behavior
+    - Environment details (OS, Go version, Docker version)
+    - Screenshots or logs if applicable
+  </Step>
+</Steps>
+
+### Feature Requests
+
+<Steps>
+  <Step title="Discuss first">
+    Open a [GitHub Discussion](https://github.com/benidevo/vega-ai/discussions) to propose your idea
+  </Step>
+
+  <Step title="Provide context">
+    Explain:
+    - What problem does this solve?
+    - Who would benefit?
+    - How should it work?
+    - Alternative solutions considered
+  </Step>
+</Steps>
+
+### Documentation
+
+Documentation improvements are always welcome:
+
+- Fix typos or unclear explanations
+- Add examples and use cases
+- Improve setup instructions
+- Translate documentation
+
+### Code Contributions
+
+Start with:
+- Issues labeled `good first issue`
+- Issues labeled `help wanted`
+- Bug fixes
+- Test coverage improvements
+
+## Development Resources
+
+<CardGroup cols={2}>
+  <Card title="Development Setup" icon="code" href="/development/setup">
+    Set up your local development environment
+  </Card>
+  
+  <Card title="Testing Guide" icon="flask" href="/development/testing">
+    Learn how to write and run tests
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Understand the system architecture
+  </Card>
+  
+  <Card title="API Reference" icon="book" href="/api/authentication/overview">
+    Explore API endpoints
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+Need assistance?
+
+- **Questions**: Open a [GitHub Discussion](https://github.com/benidevo/vega-ai/discussions)
+- **Bug Reports**: Create a [GitHub Issue](https://github.com/benidevo/vega-ai/issues)
+- **Chat**: Join our community (link in repository)
+
+## Code of Conduct
+
+### Our Pledge
+
+We are committed to providing a welcoming and inclusive environment for all contributors, regardless of:
+- Experience level
+- Background
+- Identity
+- Technology choices
+
+### Expected Behavior
+
+- Be respectful and considerate
+- Welcome newcomers and help them get started
+- Accept constructive criticism gracefully
+- Focus on what's best for the community
+- Show empathy towards other contributors
+
+### Unacceptable Behavior
+
+- Harassment or discrimination
+- Trolling or insulting comments
+- Publishing private information
+- Any conduct inappropriate in a professional setting
+
+### Enforcement
+
+Instances of unacceptable behavior may be reported to the project maintainers. All complaints will be reviewed and investigated promptly and fairly.
+
+## Recognition
+
+Contributors are recognized in:
+- GitHub contributors page
+- Release notes for significant contributions
+- Special thanks in documentation
+
+## License
+
+By contributing to Vega AI, you agree that your contributions will be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+### What This Means
+
+- Your code must be open source
+- Modifications must also be AGPL-3.0
+- Server deployments must make source available
+- Commercial use requires compliance with AGPL-3.0
+
+For commercial licensing options, contact vega@benidevo.com.
+
+## Thank You!
+
+Your contributions make Vega AI better for everyone. Whether you're fixing a typo, reporting a bug, or implementing a major feature, your efforts are appreciated!
+
+<Note>
+  Remember: Everyone was a beginner once. Don't hesitate to ask questions or request help. The community is here to support you!
+</Note>

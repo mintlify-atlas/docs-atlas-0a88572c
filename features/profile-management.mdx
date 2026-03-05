@@ -1,0 +1,638 @@
+---
+title: 'Profile Management'
+description: 'Build and maintain a comprehensive professional profile for AI-powered job matching'
+icon: 'user'
+---
+
+## Overview
+
+Your Vega AI profile is the foundation for all AI-powered features. A complete, well-structured profile enables accurate job matching, high-quality CV generation, and personalized cover letters.
+
+<Note>
+  The more detailed and complete your profile, the more accurate your job match scores and the higher quality your generated documents will be.
+</Note>
+
+## Profile Components
+
+Your profile consists of several interconnected sections:
+
+<CardGroup cols={2}>
+  <Card title="Personal Information" icon="id-card">
+    Basic contact details, professional title, and career summary.
+  </Card>
+  
+  <Card title="Work Experience" icon="briefcase">
+    Your employment history with detailed descriptions and achievements.
+  </Card>
+  
+  <Card title="Education" icon="graduation-cap">
+    Academic qualifications, degrees, and institutions.
+  </Card>
+  
+  <Card title="Skills" icon="code">
+    Technical skills, programming languages, frameworks, and tools.
+  </Card>
+  
+  <Card title="Certifications" icon="certificate">
+    Professional certifications and credentials.
+  </Card>
+  
+  <Card title="Additional Context" icon="note">
+    Career goals, preferences, and additional information for AI analysis.
+  </Card>
+</CardGroup>
+
+## Personal Information
+
+### Required Fields
+
+```go
+type Profile struct {
+    FirstName     string   // Required: Your first name
+    LastName      string   // Required: Your last name
+    Title         string   // Professional title (e.g., "Senior Software Engineer")
+    Industry      Industry // Your industry sector
+    CareerSummary string   // Required for AI: Professional summary (50+ chars)
+    Skills        []string // Required for AI: At least 3 skills
+}
+```
+
+### Contact Information
+
+<Tabs>
+  <Tab title="Email">
+    ```go
+    Email string `validate:"email,max=255"`
+    ```
+    Professional email address for contact and generated documents.
+  </Tab>
+  
+  <Tab title="Phone">
+    ```go
+    PhoneNumber string `validate:"phone"`
+    ```
+    Phone number with country code (10-20 characters).
+  </Tab>
+  
+  <Tab title="Location">
+    ```go
+    Location string `validate:"max=200"`
+    ```
+    City, state/region, and country.
+  </Tab>
+</Tabs>
+
+### Professional Links
+
+<CardGroup cols={3}>
+  <Card title="LinkedIn" icon="linkedin">
+    Full LinkedIn profile URL for professional networking.
+  </Card>
+  
+  <Card title="GitHub" icon="github">
+    GitHub profile for technical roles and portfolio demonstration.
+  </Card>
+  
+  <Card title="Website" icon="globe">
+    Personal website or portfolio URL.
+  </Card>
+</CardGroup>
+
+```go
+LinkedInProfile string `validate:"linkedin,max=500"`
+GitHubProfile   string `validate:"github,max=500"`
+Website         string `validate:"url,max=500"`
+```
+
+### Industry Selection
+
+Vega AI supports multiple industry sectors:
+
+- Software Engineering
+- Data Science & Analytics
+- Product Management
+- Design & UX
+- Marketing & Sales
+- Finance & Accounting
+- Healthcare
+- Education
+- Other
+
+```go
+type Industry int
+
+const (
+    IndustrySoftwareEngineering Industry = iota
+    IndustryDataScience
+    IndustryProductManagement
+    IndustryDesign
+    IndustryMarketing
+    IndustryFinance
+    IndustryHealthcare
+    IndustryEducation
+    IndustryOther
+)
+```
+
+## Career Summary
+
+Your career summary is critical for AI analysis:
+
+<Accordion title="What to Include">
+  - Current role and experience level
+  - Years of professional experience
+  - Areas of expertise and specialization
+  - Key achievements or accomplishments
+  - Career goals and aspirations
+  - Unique value proposition
+</Accordion>
+
+<CodeGroup>
+```text Good Example
+Senior Software Engineer with 8+ years of experience building scalable web applications. 
+Specialize in React, Node.js, and AWS cloud architecture. Led development teams of 5-10 
+engineers and delivered products serving 1M+ users. Passionate about clean code, 
+performance optimization, and mentoring junior developers. Seeking senior or lead 
+engineering roles in fast-growing tech companies.
+```
+
+```text Avoid
+Software engineer looking for a job. Have experience with programming.
+```
+</CodeGroup>
+
+<Warning>
+  Your career summary must be at least 50 characters long to enable AI features. Aim for 200-500 characters for best results.
+</Warning>
+
+## Work Experience
+
+### Structure
+
+Each work experience entry includes:
+
+```go
+type WorkExperience struct {
+    Company     string     // Company name (required)
+    Title       string     // Job title (required)
+    Location    string     // Office location
+    StartDate   time.Time  // Start date (required)
+    EndDate     *time.Time // End date (nil if current)
+    Current     bool       // Currently employed here
+    Description string     // Detailed description (max 2000 chars)
+}
+```
+
+### Adding Work Experience
+
+<Steps>
+  <Step title="Navigate to Profile">
+    Go to Settings > Profile > Work Experience.
+  </Step>
+  
+  <Step title="Click Add Experience">
+    Click "Add Work Experience" button.
+  </Step>
+  
+  <Step title="Fill Required Fields">
+    Enter company name, job title, and start date.
+  </Step>
+  
+  <Step title="Add Description">
+    Write a detailed description of your role, responsibilities, and achievements.
+  </Step>
+  
+  <Step title="Mark Current Role">
+    Check "Current" if you're still employed here (no end date required).
+  </Step>
+  
+  <Step title="Save">
+    Click "Save" to add the experience to your profile.
+  </Step>
+</Steps>
+
+### Description Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Action Verbs">
+    Start descriptions with strong action verbs: Developed, Led, Implemented, Designed, Optimized, Managed, Created.
+  </Accordion>
+  
+  <Accordion title="Quantify Achievements">
+    Include numbers and metrics: "Improved performance by 40%", "Managed team of 8 developers", "Delivered features for 500K users".
+  </Accordion>
+  
+  <Accordion title="Highlight Technologies">
+    Mention specific technologies, frameworks, and tools used in each role.
+  </Accordion>
+  
+  <Accordion title="Focus on Impact">
+    Describe the impact of your work on the business, team, or users.
+  </Accordion>
+</AccordionGroup>
+
+### Validation Rules
+
+- Company name: 1-200 characters
+- Job title: 1-200 characters
+- Location: up to 200 characters
+- Start date: cannot be in the future
+- End date: must be after start date (if provided)
+- Description: up to 2000 characters
+- Current role: cannot have an end date
+
+```go
+func (w *WorkExperience) Validate() error {
+    // Check that if Current is true, EndDate should be nil
+    if w.Current && w.EndDate != nil {
+        return ErrEndDateWithCurrent
+    }
+    return validate.Struct(w)
+}
+```
+
+## Education
+
+### Structure
+
+```go
+type Education struct {
+    Institution  string     // University or school name (required)
+    Degree       string     // Degree type (required)
+    FieldOfStudy string     // Major or field
+    StartDate    time.Time  // Start date (required)
+    EndDate      *time.Time // End date (nil if ongoing)
+    Description  string     // Additional details (max 2000 chars)
+}
+```
+
+### Adding Education
+
+<Steps>
+  <Step title="Navigate to Education Section">
+    Go to Settings > Profile > Education.
+  </Step>
+  
+  <Step title="Click Add Education">
+    Click "Add Education" button.
+  </Step>
+  
+  <Step title="Enter Institution">
+    Enter the name of your university or educational institution.
+  </Step>
+  
+  <Step title="Enter Degree">
+    Specify your degree (Bachelor's, Master's, PhD, etc.).
+  </Step>
+  
+  <Step title="Add Field of Study">
+    Enter your major or field of study.
+  </Step>
+  
+  <Step title="Set Dates">
+    Enter start and end dates (or leave end date blank if ongoing).
+  </Step>
+  
+  <Step title="Add Details">
+    Optionally add GPA, honors, relevant coursework, or achievements.
+  </Step>
+</Steps>
+
+### Education Examples
+
+<CardGroup cols={2}>
+  <Card title="Bachelor's Degree">
+    ```plaintext
+    Institution: Stanford University
+    Degree: Bachelor of Science
+    Field: Computer Science
+    Dates: 2015 - 2019
+    Details: GPA 3.8, Dean's List
+    ```
+  </Card>
+  
+  <Card title="Master's Degree">
+    ```plaintext
+    Institution: MIT
+    Degree: Master of Science
+    Field: Artificial Intelligence
+    Dates: 2019 - 2021
+    Details: Thesis on NLP models
+    ```
+  </Card>
+</CardGroup>
+
+## Skills
+
+### Managing Skills
+
+Skills are critical for job matching and should be comprehensive:
+
+```go
+Skills []string `validate:"max=50,dive,required,min=1,max=100"`
+// Maximum 50 skills, each 1-100 characters
+```
+
+### Skill Categories
+
+<Tabs>
+  <Tab title="Technical Skills">
+    - Programming languages (Python, JavaScript, Go, etc.)
+    - Frameworks and libraries (React, Django, TensorFlow, etc.)
+    - Tools and platforms (Docker, Kubernetes, AWS, etc.)
+    - Databases (PostgreSQL, MongoDB, Redis, etc.)
+  </Tab>
+  
+  <Tab title="Soft Skills">
+    - Leadership and team management
+    - Communication and presentation
+    - Problem-solving and critical thinking
+    - Project management
+    - Agile and Scrum methodologies
+  </Tab>
+  
+  <Tab title="Domain Knowledge">
+    - Industry-specific knowledge
+    - Compliance and regulations
+    - Business analysis
+    - Data analysis and visualization
+  </Tab>
+</Tabs>
+
+### Adding Skills
+
+<Steps>
+  <Step title="Navigate to Skills">
+    Go to Settings > Profile > Skills.
+  </Step>
+  
+  <Step title="Enter Skill">
+    Type a skill name in the input field.
+  </Step>
+  
+  <Step title="Add to List">
+    Press Enter or click Add to include the skill.
+  </Step>
+  
+  <Step title="Organize Skills">
+    Add at least 3 skills; recommended 10-20 for best matching.
+  </Step>
+  
+  <Step title="Update Regularly">
+    Keep skills current as you learn new technologies.
+  </Step>
+</Steps>
+
+<Tip>
+  Include both technical skills (specific technologies) and transferable skills (leadership, communication) for comprehensive matching.
+</Tip>
+
+## Certifications
+
+### Structure
+
+```go
+type Certification struct {
+    Name          string     // Certification name (required)
+    IssuingOrg    string     // Issuing organization (required)
+    IssueDate     time.Time  // Issue date (required)
+    ExpiryDate    *time.Time // Expiry date (if applicable)
+    CredentialID  string     // Certificate ID or number
+    CredentialURL string     // Verification URL
+}
+```
+
+### Adding Certifications
+
+<Steps>
+  <Step title="Navigate to Certifications">
+    Go to Settings > Profile > Certifications.
+  </Step>
+  
+  <Step title="Click Add Certification">
+    Click "Add Certification" button.
+  </Step>
+  
+  <Step title="Enter Details">
+    Fill in certification name and issuing organization.
+  </Step>
+  
+  <Step title="Add Dates">
+    Enter issue date and optional expiry date.
+  </Step>
+  
+  <Step title="Include Credentials">
+    Add credential ID and verification URL if available.
+  </Step>
+  
+  <Step title="Save">
+    Click "Save" to add the certification to your profile.
+  </Step>
+</Steps>
+
+### Certification Examples
+
+<CardGroup cols={2}>
+  <Card title="Cloud Certification">
+    ```plaintext
+    Name: AWS Certified Solutions Architect
+    Org: Amazon Web Services
+    Issue: Jan 2023
+    Expiry: Jan 2026
+    ID: AWS-CSA-12345
+    ```
+  </Card>
+  
+  <Card title="Professional Certification">
+    ```plaintext
+    Name: PMP (Project Management Professional)
+    Org: PMI
+    Issue: Mar 2022
+    Expiry: Mar 2025
+    ID: PMP-67890
+    ```
+  </Card>
+</CardGroup>
+
+## Additional Context
+
+Provide extra information to improve AI analysis:
+
+```go
+Context string `validate:"max=6000"`
+```
+
+### What to Include
+
+<AccordionGroup>
+  <Accordion title="Career Goals">
+    Your short-term and long-term career aspirations, target roles, and desired growth path.
+  </Accordion>
+  
+  <Accordion title="Work Preferences">
+    Remote/hybrid/office preferences, company size preferences, desired company culture.
+  </Accordion>
+  
+  <Accordion title="Industry Interests">
+    Specific industries or sectors you're interested in (fintech, healthcare, e-commerce, etc.).
+  </Accordion>
+  
+  <Accordion title="Special Circumstances">
+    Career transitions, relocation plans, availability, notice period, or other relevant context.
+  </Accordion>
+</AccordionGroup>
+
+## Profile Validation
+
+### Requirements for AI Features
+
+To use AI job matching, CV generation, and cover letter generation, your profile must include:
+
+<Tabs>
+  <Tab title="Minimum Requirements">
+    ✅ First Name  
+    ✅ Last Name  
+    ✅ Career Summary (50+ characters)  
+    ✅ Skills (at least 3)  
+    ✅ Work Experience OR Education (at least 1 entry)
+  </Tab>
+  
+  <Tab title="Recommended">
+    ✅ Professional Title  
+    ✅ Contact Information (email, phone)  
+    ✅ Multiple Work Experience entries  
+    ✅ Education entries  
+    ✅ 10+ relevant skills  
+    ✅ Professional links (LinkedIn, GitHub)
+  </Tab>
+  
+  <Tab title="Optional but Helpful">
+    ✅ Certifications  
+    ✅ Additional Context  
+    ✅ Location  
+    ✅ Personal website  
+    ✅ Industry selection
+  </Tab>
+</Tabs>
+
+### Validation Rules
+
+```go
+func (p *Profile) Validate() error {
+    return validate.Struct(p)
+}
+
+// Custom validators
+validate.RegisterValidation("phone", validatePhone)      // 10-20 chars, numbers only
+validate.RegisterValidation("linkedin", validateLinkedIn) // Valid LinkedIn URL
+validate.RegisterValidation("github", validateGitHub)     // Valid GitHub URL
+validate.RegisterValidation("notfuture", validateNotFuture) // Date not in future
+```
+
+## CV Upload and Parsing
+
+Quickly populate your profile by uploading an existing CV:
+
+<Steps>
+  <Step title="Navigate to Profile">
+    Go to Settings > Profile.
+  </Step>
+  
+  <Step title="Click Upload CV">
+    Click the "Upload CV" button.
+  </Step>
+  
+  <Step title="Select File">
+    Choose your CV file (PDF, DOC, DOCX, or TXT).
+  </Step>
+  
+  <Step title="AI Processing">
+    Vega AI extracts structured information from your CV.
+  </Step>
+  
+  <Step title="Review Results">
+    Review the extracted information for accuracy.
+  </Step>
+  
+  <Step title="Confirm or Edit">
+    Edit any incorrect information before saving.
+  </Step>
+  
+  <Step title="Save to Profile">
+    Click "Save" to populate your profile with the extracted data.
+  </Step>
+</Steps>
+
+<Note>
+  CV parsing uses AI to extract information. Always review the results for accuracy before saving.
+</Note>
+
+## Profile Completeness
+
+Vega AI tracks your profile completeness:
+
+<CardGroup cols={3}>
+  <Card title="Basic (30%)" icon="circle-notch">
+    Name and basic contact information only.
+  </Card>
+  
+  <Card title="Good (60%)" icon="circle-half-stroke">
+    Includes career summary, skills, and some experience.
+  </Card>
+  
+  <Card title="Complete (100%)" icon="circle-check">
+    Comprehensive profile with all sections filled.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep It Updated">
+    Regularly update your profile with new skills, experience, and certifications as you grow professionally.
+  </Accordion>
+  
+  <Accordion title="Be Specific">
+    Use specific technology names, tools, and frameworks rather than generic terms.
+  </Accordion>
+  
+  <Accordion title="Quantify Achievements">
+    Include numbers, percentages, and metrics in your work experience descriptions.
+  </Accordion>
+  
+  <Accordion title="Write for AI and Humans">
+    Your profile is used by AI for matching, but also appears in generated documents that humans will read.
+  </Accordion>
+  
+  <Accordion title="Include Keywords">
+    Add industry-specific keywords and terminology that appear in target job descriptions.
+  </Accordion>
+  
+  <Accordion title="Maintain Consistency">
+    Ensure dates, titles, and information are consistent across all sections.
+  </Accordion>
+</AccordionGroup>
+
+## Privacy and Security
+
+<CardGroup cols={2}>
+  <Card title="Data Privacy" icon="shield">
+    Your profile data is stored securely and never shared with third parties without your consent.
+  </Card>
+  
+  <Card title="AI Processing" icon="brain">
+    Profile data is only used for AI analysis when you explicitly trigger features like job matching or document generation.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Job Tracking" icon="briefcase" href="/features/job-tracking">
+    Start adding jobs to your dashboard and tracking applications.
+  </Card>
+  
+  <Card title="AI Job Matching" icon="wand-magic-sparkles" href="/features/ai-matching">
+    Analyze job compatibility with your completed profile.
+  </Card>
+</CardGroup>

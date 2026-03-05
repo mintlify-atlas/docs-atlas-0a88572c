@@ -1,0 +1,547 @@
+---
+title: 'Testing Guide'
+description: 'Learn how to write and run tests for Vega AI'
+---
+
+## Overview
+
+Vega AI uses Go's built-in testing framework with testify for assertions and mockery for generating mocks. The test suite includes unit tests, integration tests, and test coverage reporting.
+
+## Running Tests
+
+### Quick Start
+
+Run all tests with coverage:
+
+```bash
+make test
+```
+
+This command:
+1. Runs all tests in Docker container
+2. Generates coverage profile
+3. Filters out handlers from coverage
+4. Displays total coverage percentage
+
+### Verbose Output
+
+For detailed coverage per package:
+
+```bash
+make test-verbose
+```
+
+### Manual Test Commands
+
+<CodeGroup>
+
+```bash All Tests
+# Run all tests
+go test ./...
+```
+
+```bash With Coverage
+# Generate coverage report
+go test -cover ./...
+
+# Detailed coverage profile
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+```bash Specific Package
+# Test authentication package
+go test ./internal/auth/...
+
+# Test AI services
+go test ./internal/ai/services/...
+```
+
+```bash With Flags
+# Verbose output
+go test -v ./...
+
+# Run specific test
+go test -v -run TestRegisterUser ./internal/auth/services/
+
+# Show coverage per function
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+```
+
+</CodeGroup>
+
+## Test Structure
+
+Vega AI follows Go testing conventions with tests located alongside source code:
+
+```plaintext
+internal/
+├── auth/
+│   ├── services/
+│   │   ├── auth.go
+│   │   └── auth_test.go          # Unit tests
+│   ├── repository/
+│   │   ├── repository.go
+│   │   └── repository_test.go    # Unit tests
+│   ├── handlers_test.go          # Handler tests
+│   └── setup_test.go             # Integration test setup
+├── job/
+│   ├── services_test.go
+│   ├── repository/
+│   │   └── job_repository_test.go
+│   └── setup_test.go
+└── ai/
+    ├── services/
+    │   ├── cv_parser_test.go
+    │   └── job_matcher_test.go
+    └── setup_test.go
+```
+
+### Test File Naming
+
+- **Unit tests**: `*_test.go` alongside source files
+- **Integration tests**: `setup_test.go` in package root
+- **Test helpers**: Located in `internal/common/testutil/`
+
+## Writing Tests
+
+### Unit Test Example
+
+Here's a typical unit test structure from `internal/auth/services/auth_test.go`:
+
+```go auth_test.go
+package services
+
+import (
+    "context"
+    "testing"
+
+    "github.com/benidevo/vega/internal/auth/models"
+    repomocks "github.com/benidevo/vega/internal/auth/repository/mocks"
+    "github.com/benidevo/vega/internal/config"
+    "github.com/stretchr/testify/mock"
+    "github.com/stretchr/testify/require"
+)
+
+func setupTestConfig() *config.Settings {
+    return &config.Settings{
+        TokenSecret:        "test-secret-key",
+        AccessTokenExpiry:  15 * time.Minute,
+        RefreshTokenExpiry: 7 * 24 * time.Hour,
+    }
+}
+
+func TestRegisterUser(t *testing.T) {
+    t.Run("should_register_user_successfully_when_valid_data", func(t *testing.T) {
+        // Arrange
+        mockRepo := repomocks.NewMockUserRepository(t)
+        cfg := setupTestConfig()
+        ctx := context.Background()
+
+        mockRepo.On("CreateUser", ctx, "testuser", 
+            mock.AnythingOfType("string"), "admin").Return(&models.User{
+            ID:       1,
+            Username: "testuser",
+            Role:     models.ADMIN,
+        }, nil)
+
+        authService := NewAuthService(mockRepo, cfg)
+
+        // Act
+        user, err := authService.Register(ctx, "testuser", "password123", "admin")
+
+        // Assert
+        require.NoError(t, err)
+        require.NotNil(t, user)
+        require.Equal(t, "testuser", user.Username)
+        require.Equal(t, models.ADMIN, user.Role)
+    })
+}
+```
+
+### Test Naming Convention
+
+Use descriptive test names that follow the pattern:
+
+```go
+func TestFunctionName(t *testing.T) {
+    t.Run("should_do_something_when_condition", func(t *testing.T) {
+        // Test implementation
+    })
+    
+    t.Run("should_return_error_when_invalid_input", func(t *testing.T) {
+        // Test implementation
+    })
+}
+```
+
+<Note>
+  Use underscores in test names for readability. This makes test output easier to read when tests fail.
+</Note>
+
+## Mocking
+
+Vega AI uses [mockery](https://github.com/vektra/mockery) to generate mocks from interfaces.
+
+### Generating Mocks
+
+<CodeGroup>
+
+```bash Local
+# Generate mocks locally
+make mocks
+```
+
+```bash Docker
+# Generate mocks in Docker container
+make mocks-docker
+```
+
+</CodeGroup>
+
+### Mock Configuration
+
+Mocks are configured in `.mockery.yaml` and generated in `mocks/` subdirectories within each package.
+
+### Using Mocks in Tests
+
+```go Example Mock Usage
+package services
+
+import (
+    "testing"
+    "github.com/stretchr/testify/mock"
+    repomocks "github.com/benidevo/vega/internal/auth/repository/mocks"
+)
+
+func TestWithMock(t *testing.T) {
+    // Create mock
+    mockRepo := repomocks.NewMockUserRepository(t)
+    
+    // Set expectations
+    mockRepo.On("GetUserByID", ctx, 1).Return(&models.User{
+        ID: 1,
+        Username: "testuser",
+    }, nil)
+    
+    // Use mock in service
+    service := NewAuthService(mockRepo, cfg)
+    
+    // Call method and assert
+    user, err := service.GetUser(ctx, 1)
+    require.NoError(t, err)
+    require.Equal(t, "testuser", user.Username)
+    
+    // Verify expectations were met
+    mockRepo.AssertExpectations(t)
+}
+```
+
+## Test Coverage
+
+### Coverage Script
+
+The project uses a custom coverage script at `scripts/coverage.sh`:
+
+```bash coverage.sh
+#!/bin/sh
+
+# Run tests and generate coverage profile
+go test ./... -coverprofile=coverage.out \
+    -coverpkg='github.com/benidevo/vega/internal/...' \
+    -covermode=set
+
+# Filter out handlers from coverage
+grep -v '/handlers.go' coverage.out > coverage.filtered.out
+
+# Generate report
+if [ "$1" = "verbose" ]; then
+  go tool cover -func=coverage.filtered.out
+else
+  go tool cover -func=coverage.filtered.out | grep total:
+fi
+```
+
+### Coverage Options
+
+<CardGroup cols={2}>
+  <Card title="Summary" icon="chart-simple">
+    ```bash
+    make test
+    ```
+    Shows total coverage percentage
+  </Card>
+  
+  <Card title="Detailed" icon="chart-line">
+    ```bash
+    make test-verbose
+    ```
+    Shows coverage per package and function
+  </Card>
+  
+  <Card title="HTML Report" icon="browser">
+    ```bash
+    go test -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out
+    ```
+    Opens interactive coverage report in browser
+  </Card>
+  
+  <Card title="Profile File" icon="file">
+    ```bash
+    go test -coverprofile=coverage.out ./...
+    ```
+    Generates `coverage.out` for analysis
+  </Card>
+</CardGroup>
+
+### Coverage Goals
+
+- **Target**: Maintain high coverage for business logic
+- **Excluded**: Handler functions are filtered from coverage reports
+- **Focus**: Core services, repositories, and models
+
+## Integration Tests
+
+Integration tests validate interactions between components:
+
+```go setup_test.go
+package auth
+
+import (
+    "context"
+    "testing"
+    "github.com/benidevo/vega/internal/db"
+)
+
+func setupTestDB(t *testing.T) *sql.DB {
+    db, err := db.NewTestDatabase()
+    require.NoError(t, err)
+    
+    // Run migrations
+    err = db.Migrate()
+    require.NoError(t, err)
+    
+    t.Cleanup(func() {
+        db.Close()
+    })
+    
+    return db
+}
+
+func TestAuthIntegration(t *testing.T) {
+    db := setupTestDB(t)
+    repo := repository.NewUserRepository(db)
+    service := services.NewAuthService(repo, cfg)
+    
+    // Test full authentication flow
+    user, err := service.Register(ctx, "testuser", "password", "user")
+    require.NoError(t, err)
+    
+    // Verify user was persisted
+    retrieved, err := repo.GetUserByUsername(ctx, "testuser")
+    require.NoError(t, err)
+    require.Equal(t, user.ID, retrieved.ID)
+}
+```
+
+## Testing Best Practices
+
+### 1. Test Organization
+
+<Steps>
+  <Step title="Arrange-Act-Assert Pattern">
+    ```go
+    func TestExample(t *testing.T) {
+        // Arrange - Set up test data and mocks
+        mockRepo := setupMock()
+        service := NewService(mockRepo)
+        
+        // Act - Execute the code being tested
+        result, err := service.DoSomething()
+        
+        // Assert - Verify the results
+        require.NoError(t, err)
+        require.Equal(t, expected, result)
+    }
+    ```
+  </Step>
+  
+  <Step title="Table-Driven Tests">
+    ```go
+    func TestValidation(t *testing.T) {
+        tests := []struct {
+            name    string
+            input   string
+            wantErr bool
+        }{
+            {"valid_input", "test@example.com", false},
+            {"invalid_email", "not-an-email", true},
+            {"empty_input", "", true},
+        }
+        
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+                err := Validate(tt.input)
+                if tt.wantErr {
+                    require.Error(t, err)
+                } else {
+                    require.NoError(t, err)
+                }
+            })
+        }
+    }
+    ```
+  </Step>
+  
+  <Step title="Test Cleanup">
+    ```go
+    func TestWithCleanup(t *testing.T) {
+        db := setupDatabase()
+        
+        t.Cleanup(func() {
+            db.Close()
+            os.RemoveAll("test-data")
+        })
+        
+        // Test implementation
+    }
+    ```
+  </Step>
+</Steps>
+
+### 2. Isolation
+
+- Each test should be independent
+- Use mocks to isolate units
+- Clean up resources with `t.Cleanup()`
+- Avoid global state
+
+### 3. Readability
+
+- Use descriptive test names
+- Add comments for complex test setup
+- Keep tests focused and simple
+- One assertion per test when possible
+
+### 4. Coverage
+
+- Test happy paths and error cases
+- Test edge cases and boundary conditions
+- Don't test third-party code
+- Focus on business logic
+
+## Common Testing Patterns
+
+### Testing Error Handling
+
+```go
+func TestErrorHandling(t *testing.T) {
+    t.Run("should_return_error_when_repository_fails", func(t *testing.T) {
+        mockRepo := repomocks.NewMockRepository(t)
+        mockRepo.On("GetUser", ctx, 1).Return(nil, errors.New("db error"))
+        
+        service := NewService(mockRepo)
+        user, err := service.GetUser(ctx, 1)
+        
+        require.Error(t, err)
+        require.Nil(t, user)
+        require.Contains(t, err.Error(), "db error")
+    })
+}
+```
+
+### Testing with Context
+
+```go
+func TestWithContext(t *testing.T) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    
+    result, err := service.LongRunningOperation(ctx)
+    
+    require.NoError(t, err)
+    require.NotNil(t, result)
+}
+```
+
+### Testing Concurrent Code
+
+```go
+func TestConcurrency(t *testing.T) {
+    var wg sync.WaitGroup
+    errors := make(chan error, 10)
+    
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go func(id int) {
+            defer wg.Done()
+            if err := service.Process(id); err != nil {
+                errors <- err
+            }
+        }(i)
+    }
+    
+    wg.Wait()
+    close(errors)
+    
+    for err := range errors {
+        t.Errorf("concurrent operation failed: %v", err)
+    }
+}
+```
+
+## Continuous Integration
+
+Tests are automatically run on GitHub Actions:
+
+- **Trigger**: On every push and pull request
+- **Environment**: Ubuntu latest with Go 1.24
+- **Steps**: 
+  1. Checkout code
+  2. Set up Go
+  3. Install dependencies
+  4. Run tests with coverage
+  5. Upload coverage reports
+
+## Debugging Tests
+
+### Run Single Test
+
+```bash
+go test -v -run TestRegisterUser ./internal/auth/services/
+```
+
+### Print Debug Information
+
+```go
+func TestWithDebug(t *testing.T) {
+    result := someFunction()
+    t.Logf("Result: %+v", result)  // Only shown if test fails or -v flag used
+    
+    require.Equal(t, expected, result)
+}
+```
+
+### Use Delve Debugger
+
+```bash
+# Install delve
+go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Debug specific test
+dlv test ./internal/auth/services -- -test.run TestRegisterUser
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Development Setup" icon="code" href="/development/setup">
+    Set up your development environment
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to contribute to Vega AI
+  </Card>
+</CardGroup>

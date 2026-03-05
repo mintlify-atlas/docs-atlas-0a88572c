@@ -1,0 +1,212 @@
+---
+title: 'Quickstart'
+description: 'Get Vega AI up and running in under 5 minutes'
+icon: 'rocket'
+---
+
+Get started with Vega AI in minutes. This guide will walk you through the fastest way to start tracking your job applications with AI-powered assistance.
+
+## Prerequisites
+
+Before you begin, you'll need:
+
+<CardGroup cols={2}>
+  <Card title="Docker" icon="docker" href="https://www.docker.com/products/docker-desktop/">
+    Docker Desktop installed on your machine
+  </Card>
+  <Card title="Gemini API Key" icon="key" href="https://aistudio.google.com/app/apikey">
+    Free API key from Google AI Studio
+  </Card>
+</CardGroup>
+
+<Note>
+  **New to Docker?** Docker Desktop is available for Mac, Windows, and Linux. It's free and takes just a few minutes to install.
+</Note>
+
+## Quick Start
+
+<Steps>
+  <Step title="Get Your Gemini API Key">
+    Navigate to [Google AI Studio](https://aistudio.google.com/app/apikey) and generate a free API key. This enables Vega AI's intelligent features like document generation and job matching.
+  </Step>
+
+  <Step title="Create Configuration Directory">
+    Create a dedicated directory for Vega AI and set up your configuration:
+
+    ```bash
+    # Create directory
+    mkdir vega-ai && cd vega-ai
+
+    # Create config file with your API key
+    echo "GEMINI_API_KEY=your-gemini-api-key" > config
+    ```
+
+    <Warning>
+      Replace `your-gemini-api-key` with your actual API key from Google AI Studio.
+    </Warning>
+  </Step>
+
+  <Step title="Start Vega AI">
+    Launch Vega AI with a single Docker command:
+
+    ```bash
+    docker run --pull always -d \
+      --name vega-ai \
+      -p 8765:8765 \
+      -v vega-data:/app/data \
+      --env-file config \
+      ghcr.io/benidevo/vega-ai:latest
+    ```
+
+    This command:
+    - Downloads the latest Vega AI image
+    - Runs it as a background service
+    - Exposes the application on port 8765
+    - Persists your data in a Docker volume
+    - Loads your configuration from the `config` file
+  </Step>
+
+  <Step title="Access Vega AI">
+    Open your browser and navigate to:
+
+    ```
+    http://localhost:8765
+    ```
+
+    Log in with the default credentials:
+    - **Username**: `admin`
+    - **Password**: `VegaAdmin`
+
+    <Warning>
+      **Security First!** Change your password immediately after first login via Settings → Account.
+    </Warning>
+  </Step>
+</Steps>
+
+## What's Next?
+
+Now that Vega AI is running, you can:
+
+<CardGroup cols={2}>
+  <Card title="Add Your First Job" icon="briefcase">
+    Start tracking job applications manually or with the browser extension
+  </Card>
+  <Card title="Build Your Profile" icon="user">
+    Upload your CV or manually add your experience, education, and skills
+  </Card>
+  <Card title="Generate Documents" icon="file-lines">
+    Create tailored cover letters and CVs using AI
+  </Card>
+  <Card title="Get Match Scores" icon="chart-simple">
+    Analyze job compatibility with AI-powered matching
+  </Card>
+</CardGroup>
+
+## Alternative Installation Methods
+
+### Docker Compose
+
+For easier management and configuration, create a `docker-compose.yml` file:
+
+```yaml docker-compose.yml
+services:
+  vega-ai:
+    image: ghcr.io/benidevo/vega-ai:latest
+    ports:
+      - "8765:8765"
+    volumes:
+      - vega-data:/app/data
+    env_file:
+      - config
+    restart: unless-stopped
+
+volumes:
+  vega-data:
+```
+
+Then start with:
+
+```bash
+docker compose up -d
+```
+
+### Cloud Mode
+
+Try the hosted version at [vega.benidevo.com](https://vega.benidevo.com) for zero setup. Learn more about [Cloud vs Self-Hosted](/getting-started/cloud-vs-selfhost).
+
+## Browser Extension
+
+Capture jobs directly from LinkedIn with one click:
+
+<Steps>
+  <Step title="Download Extension">
+    Get the latest release from [GitHub Releases](https://github.com/benidevo/vega-ai-extension/releases/latest)
+  </Step>
+
+  <Step title="Install in Chrome">
+    1. Extract the ZIP file to a folder
+    2. Open `chrome://extensions/`
+    3. Enable "Developer mode"
+    4. Click "Load unpacked" and select the folder
+  </Step>
+
+  <Step title="Configure Connection">
+    Connect the extension to your Vega AI instance:
+    - **URL**: `http://localhost:8765`
+    - **Credentials**: Your admin login
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Port Already in Use
+
+If port 8765 is already occupied:
+
+```bash
+# Use a different port
+docker run --pull always -d \
+  --name vega-ai \
+  -p 8080:8765 \
+  -v vega-data:/app/data \
+  --env-file config \
+  ghcr.io/benidevo/vega-ai:latest
+```
+
+Then access at `http://localhost:8080`
+
+### Container Won't Start
+
+Check the logs for errors:
+
+```bash
+docker logs vega-ai
+```
+
+### Reset Everything
+
+To start fresh:
+
+```bash
+# Stop and remove container
+docker stop vega-ai
+docker rm vega-ai
+
+# Remove data volume (WARNING: deletes all data)
+docker volume rm vega-data
+
+# Start again from Step 3
+```
+
+## Need Help?
+
+Explore the complete documentation:
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="gear" href="/getting-started/configuration">
+    Advanced configuration options and environment variables
+  </Card>
+  <Card title="Deployment Options" icon="server" href="/getting-started/cloud-vs-selfhost">
+    Choose between cloud and self-hosted deployment
+  </Card>
+</CardGroup>

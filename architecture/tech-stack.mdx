@@ -1,0 +1,567 @@
+---
+title: Technology Stack
+description: Complete overview of Vega AI's technology stack, dependencies, and infrastructure components
+---
+
+## Technology Overview
+
+Vega AI is built with a modern, lightweight technology stack optimized for performance, simplicity, and ease of deployment.
+
+## Core Technologies
+
+<CardGroup cols={2}>
+  <Card title="Backend" icon="golang">
+    **Go 1.24.0** with domain-driven layered architecture
+  </Card>
+  <Card title="Database" icon="database">
+    **SQLite** with WAL mode and multi-tenant support
+  </Card>
+  <Card title="Frontend" icon="code">
+    **Go Templates + HTMX + Hyperscript + Tailwind CSS** (CDN)
+  </Card>
+  <Card title="AI" icon="brain">
+    **Google Gemini API** for analysis, generation, and parsing
+  </Card>
+</CardGroup>
+
+## Backend Framework
+
+### Web Framework - Gin
+
+**Version:** `v1.10.0`
+
+```go
+import "github.com/gin-gonic/gin"
+
+router := gin.Default()
+router.GET("/health", func(c *gin.Context) {
+    c.JSON(http.StatusOK, gin.H{"status": "ok"})
+})
+```
+
+**Why Gin:**
+- High performance with minimal overhead
+- Built-in middleware support
+- Excellent routing and parameter binding
+- Active community and maintenance
+
+### Middleware Stack
+
+<CardGroup cols={2}>
+  <Card title="CORS" icon="globe">
+    `github.com/gin-contrib/cors v1.7.5` - Cross-origin resource sharing
+  </Card>
+  <Card title="Authentication" icon="shield">
+    Custom JWT middleware with user ID injection
+  </Card>
+  <Card title="Security Headers" icon="lock">
+    Content-Security-Policy, X-Frame-Options, HSTS
+  </Card>
+  <Card title="CSRF Protection" icon="shield-halved">
+    Token-based CSRF protection for forms
+  </Card>
+</CardGroup>
+
+## Database Layer
+
+### SQLite with modernc.org Driver
+
+**Version:** `modernc.org/sqlite v1.37.0`
+
+```go
+import _ "modernc.org/sqlite"
+
+db, err := sql.Open("sqlite", "/app/data/vega.db?_journal_mode=WAL")
+```
+
+**Key Features:**
+- Pure Go implementation (no CGO required)
+- WAL mode for concurrent reads and writes
+- Composite indexes for multi-tenant queries
+- Foreign key constraints enforced
+
+**Configuration:**
+
+```go
+type DBConfig struct {
+    MaxOpenConns    int           // 25 (production)
+    MaxIdleConns    int           // 5 (production)
+    ConnMaxLifetime time.Duration // 5 minutes
+    ConnMaxIdleTime time.Duration // 1 minute
+}
+```
+
+### Query Builder - Squirrel
+
+**Version:** `github.com/Masterminds/squirrel v1.5.4`
+
+```go
+import sq "github.com/Masterminds/squirrel"
+
+sql, args, err := sq.Select("*").
+    From("jobs").
+    Where(sq.Eq{"user_id": userID, "status": status}).
+    OrderBy("created_at DESC").
+    Limit(10).
+    ToSql()
+```
+
+**Benefits:**
+- Type-safe query construction
+- SQL injection prevention
+- Easy to test and mock
+- Readable query building
+
+### Database Migrations
+
+**Version:** `github.com/golang-migrate/migrate/v4 v4.18.3`
+
+```bash
+migrations/sqlite/
+├── 000001_initial_schema.up.sql
+├── 000001_initial_schema.down.sql
+├── 000003_add_quota_system.up.sql
+├── 000003_add_quota_system.down.sql
+└── ...
+```
+
+```go
+import "github.com/golang-migrate/migrate/v4"
+
+func MigrateDatabase(dbPath, migrationsDir string) error {
+    m, err := migrate.New(
+        "file://"+migrationsDir,
+        "sqlite://"+dbPath,
+    )
+    if err != nil {
+        return err
+    }
+    return m.Up()
+}
+```
+
+## Caching Layer
+
+### Badger v4 - Embedded Key-Value Store
+
+**Version:** `github.com/dgraph-io/badger/v4 v4.7.0`
+
+```go
+import "github.com/dgraph-io/badger/v4"
+
+type BadgerCache struct {
+    db     *badger.DB
+    ctx    context.Context
+    cancel context.CancelFunc
+}
+
+func (c *BadgerCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+    data, _ := json.Marshal(value)
+    return c.db.Update(func(txn *badger.Txn) error {
+        e := badger.NewEntry([]byte(key), data).WithTTL(ttl)
+        return txn.SetEntry(e)
+    })
+}
+```
+
+**Cache Configuration:**
+
+<CardGroup cols={2}>
+  <Card title="Memory Limit" icon="memory">
+    256MB default (configurable via `CACHE_MAX_MEMORY_MB`)
+  </Card>
+  <Card title="Default TTL" icon="clock">
+    1 hour (max TTL enforced)
+  </Card>
+  <Card title="Garbage Collection" icon="broom">
+    Runs every 5 minutes
+  </Card>
+  <Card title="Value Log" icon="file">
+    100MB files, 10,000 entries max
+  </Card>
+</CardGroup>
+
+**User-scoped Cache Keys:**
+
+```go
+// Pattern: entity:u{userID}:identifier
+"job:u123:45"           // Job 45 for user 123
+"profile:u123:details"  // Profile for user 123
+"stats:u123:dashboard" // Dashboard stats for user 123
+```
+
+### NoOp Cache (Fallback)
+
+```go
+type NoOpCache struct{}
+
+func (n *NoOpCache) Get(ctx context.Context, key string, value interface{}) error {
+    return ErrCacheMiss // Always returns cache miss
+}
+```
+
+Used when cache initialization fails for graceful degradation.
+
+## Authentication & Security
+
+### JWT - JSON Web Tokens
+
+**Version:** `github.com/golang-jwt/jwt/v5 v5.2.2`
+
+```go
+import "github.com/golang-jwt/jwt/v5"
+
+type Claims struct {
+    UserID    int    `json:"user_id"`
+    Username  string `json:"username"`
+    Role      string `json:"role"`
+    TokenType string `json:"token_type"` // "access" or "refresh"
+    jwt.RegisteredClaims
+}
+
+func (s *AuthService) GenerateTokenPair(user *models.User) (*TokenPair, error) {
+    accessToken := generateToken(user, "access", s.config.AccessTokenExpiry)
+    refreshToken := generateToken(user, "refresh", s.config.RefreshTokenExpiry)
+    return &TokenPair{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+```
+
+**Token Configuration:**
+
+- **Access Token:** 60 minutes (configurable)
+- **Refresh Token:** 72 hours (configurable)
+- **Storage:** Secure HTTP-only cookies
+- **Algorithm:** HMAC-SHA256
+
+### OAuth 2.0 - Google Authentication
+
+**Version:** `golang.org/x/oauth2 v0.30.0`
+
+```go
+import "golang.org/x/oauth2"
+
+oauthConfig := &oauth2.Config{
+    ClientID:     cfg.GoogleClientID,
+    ClientSecret: cfg.GoogleClientSecret,
+    RedirectURL:  cfg.GoogleClientRedirectURL,
+    Scopes:       []string{"email", "profile"},
+    Endpoint:     google.Endpoint,
+}
+```
+
+**OAuth Flow:**
+
+<Steps>
+  <Step title="Initiate">
+    User clicks "Sign in with Google"
+  </Step>
+  <Step title="Redirect">
+    Application redirects to Google OAuth consent screen
+  </Step>
+  <Step title="Callback">
+    Google redirects back with authorization code
+  </Step>
+  <Step title="Token Exchange">
+    Exchange code for access token and user info
+  </Step>
+  <Step title="User Creation">
+    Create/update user in database and issue JWT tokens
+  </Step>
+</Steps>
+
+### Password Hashing
+
+**Version:** `golang.org/x/crypto v0.46.0`
+
+```go
+import "golang.org/x/crypto/bcrypt"
+
+func HashPassword(password string) (string, error) {
+    hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+    return string(hash), err
+}
+
+func VerifyPassword(hashedPassword, password string) error {
+    return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+```
+
+## AI Provider
+
+### Google Gemini API
+
+**Version:** `google.golang.org/genai v1.11.1`
+
+```go
+import "google.golang.org/genai"
+
+type GeminiProvider struct {
+    client     *genai.Client
+    config     *Config
+    jobModel   *genai.GenerativeModel
+    cvModel    *genai.GenerativeModel
+}
+
+func (p *GeminiProvider) Generate(ctx context.Context, prompt string, modelType ModelType) (string, error) {
+    model := p.selectModel(modelType)
+    resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+    // ...
+}
+```
+
+**Model Configuration:**
+
+<CardGroup cols={2}>
+  <Card title="Default Model" icon="star">
+    `gemini-2.5-flash` - Fast, general-purpose
+  </Card>
+  <Card title="CV Parsing" icon="file-import">
+    `gemini-2.5-flash` - Quick profile extraction
+  </Card>
+  <Card title="Job Analysis" icon="magnifying-glass-chart">
+    `gemini-2.5-flash` - Deep compatibility analysis
+  </Card>
+  <Card title="Cover Letter" icon="envelope">
+    `gemini-2.5-flash` - Professional letter generation
+  </Card>
+</CardGroup>
+
+**Environment Variables:**
+
+```bash
+GEMINI_API_KEY=your-api-key
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL_CV_PARSING=gemini-2.5-flash
+GEMINI_MODEL_JOB_ANALYSIS=gemini-2.5-flash
+GEMINI_MODEL_COVER_LETTER=gemini-2.5-flash
+```
+
+## Frontend Technologies
+
+### Go HTML Templates
+
+```go
+router.SetFuncMap(template.FuncMap{
+    "safeHTML": func(s string) template.HTML {
+        return template.HTML(s)
+    },
+    "dict": func(values ...interface{}) (map[string]interface{}, error) {
+        // Create dict for templates
+    },
+})
+
+router.LoadHTMLFiles(files...)
+```
+
+**Custom Template Functions:**
+
+- `safeHTML` - Render HTML without escaping
+- `dict` - Create key-value maps in templates
+- `default` - Provide default values
+- `add`, `sub`, `mul`, `min`, `max` - Math operations
+- `pageRange` - Pagination helpers
+- `matchColors` - Color coding for match scores
+- `cappedQuota` - Quota display helpers
+
+### HTMX - Dynamic HTML
+
+```html
+<!-- Job form with HTMX -->
+<form hx-post="/jobs/new" hx-target="#job-list" hx-swap="afterbegin">
+    <input type="text" name="title" required>
+    <button type="submit">Add Job</button>
+</form>
+
+<!-- Status update -->
+<select hx-post="/jobs/{{.ID}}/status" 
+        hx-trigger="change" 
+        hx-target="#job-{{.ID}}">
+    <option value="interested">Interested</option>
+    <option value="applied">Applied</option>
+</select>
+```
+
+### Tailwind CSS (CDN)
+
+```html
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3/dist/tailwind.min.css" rel="stylesheet">
+
+<!-- Example component -->
+<div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-bold text-primary">Job Title</h2>
+    <p class="text-gray-400 mt-2">Company Name</p>
+</div>
+```
+
+## Logging & Monitoring
+
+### Zerolog - Structured Logging
+
+**Version:** `github.com/rs/zerolog v1.34.0`
+
+```go
+import "github.com/rs/zerolog/log"
+
+log.Info().Str("port", serverPort).Msg("Starting server")
+log.Error().Err(err).Int("user_id", userID).Msg("Failed to create job")
+log.Debug().Interface("config", cfg).Msg("Configuration loaded")
+```
+
+**GDPR-Compliant Logging:**
+
+```go
+type PrivacyLogger struct {
+    logger zerolog.Logger
+}
+
+func (p *PrivacyLogger) LogAuthEvent(event string, userID int, success bool) {
+    // Logs event without PII
+    p.logger.Info().
+        Str("event", event).
+        Int("user_ref", userID).
+        Bool("success", success).
+        Msg("Auth event")
+}
+
+func HashIdentifier(identifier string) string {
+    h := sha256.Sum256([]byte(identifier))
+    return base64.URLEncoding.EncodeToString(h[:])
+}
+```
+
+**What NOT to Log:**
+- Email addresses
+- Usernames or names
+- IP addresses
+- OAuth tokens
+- Any direct PII
+
+## Testing Stack
+
+<CardGroup cols={2}>
+  <Card title="Testing Framework" icon="flask">
+    `github.com/stretchr/testify v1.10.0` - Assertions and test suites
+  </Card>
+  <Card title="Mock Generation" icon="clone">
+    `github.com/vektra/mockery/v2 v2.53.5` - Interface mocks
+  </Card>
+  <Card title="SQL Mocking" icon="database">
+    `github.com/DATA-DOG/go-sqlmock v1.5.2` - Database mocks
+  </Card>
+  <Card title="Validation" icon="check">
+    `github.com/go-playground/validator/v10 v10.26.0` - Struct validation
+  </Card>
+</CardGroup>
+
+```go
+import (
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/mock"
+)
+
+func TestJobService_Create(t *testing.T) {
+    mockRepo := mocks.NewMockJobRepository(t)
+    mockRepo.On("Create", mock.Anything, 1, mock.Anything).Return(nil)
+
+    service := NewJobService(mockRepo)
+    err := service.Create(context.Background(), 1, &models.Job{})
+
+    assert.NoError(t, err)
+    mockRepo.AssertExpectations(t)
+}
+```
+
+## Development Dependencies
+
+### Complete Dependency List
+
+```go
+require (
+    github.com/Masterminds/squirrel v1.5.4
+    github.com/dgraph-io/badger/v4 v4.7.0
+    github.com/gin-contrib/cors v1.7.5
+    github.com/gin-gonic/gin v1.10.0
+    github.com/golang-jwt/jwt/v5 v5.2.2
+    github.com/golang-migrate/migrate/v4 v4.18.3
+    github.com/go-playground/validator/v10 v10.26.0
+    github.com/google/uuid v1.6.0
+    github.com/rs/zerolog v1.34.0
+    golang.org/x/crypto v0.46.0
+    golang.org/x/oauth2 v0.30.0
+    google.golang.org/genai v1.11.1
+    modernc.org/sqlite v1.37.0
+)
+```
+
+## Infrastructure
+
+<CardGroup cols={2}>
+  <Card title="Containerization" icon="docker">
+    **Docker** - Multi-stage builds for production
+  </Card>
+  <Card title="CI/CD" icon="github">
+    **GitHub Actions** - Automated testing and deployment
+  </Card>
+  <Card title="Container Registry" icon="box">
+    **GitHub Container Registry (GHCR)** - Docker image hosting
+  </Card>
+  <Card title="Deployment" icon="server">
+    **Docker Compose** - Local and production deployments
+  </Card>
+</CardGroup>
+
+### Docker Configuration
+
+```dockerfile
+# Multi-stage build
+FROM golang:1.24-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go build -o vega cmd/vega/main.go
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY --from=builder /app/vega .
+COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/static ./static
+COPY --from=builder /app/migrations ./migrations
+EXPOSE 8765
+CMD ["./vega"]
+```
+
+## Configuration Management
+
+All configuration via environment variables with sensible defaults:
+
+```bash
+# Core
+SERVER_PORT=:8765
+DB_CONNECTION_STRING=/app/data/vega.db?_journal_mode=WAL
+TOKEN_SECRET=your-secret-key
+
+# Authentication
+ACCESS_TOKEN_EXPIRY=60  # minutes
+REFRESH_TOKEN_EXPIRY=72 # hours
+
+# Google OAuth (Cloud Mode)
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# AI
+GEMINI_API_KEY=your-api-key
+
+# Cache
+CACHE_PATH=./data/cache
+CACHE_MAX_MEMORY_MB=256
+CACHE_DEFAULT_TTL=1h
+
+# Features
+CLOUD_MODE=false
+ENABLE_SECURITY_HEADERS=true
+ENABLE_CSRF=true
+```
+
+<Note>
+  All secrets support `_FILE` suffix for Docker secrets integration (e.g., `TOKEN_SECRET_FILE=/run/secrets/token_secret`).
+</Note>

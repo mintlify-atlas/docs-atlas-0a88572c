@@ -1,0 +1,594 @@
+---
+title: 'Configuration'
+description: 'Complete guide to configuring Vega AI'
+icon: 'gear'
+---
+
+Vega AI can be configured through environment variables. This guide covers all available configuration options for both self-hosted and cloud deployments.
+
+## Configuration File
+
+Create a configuration file (typically named `config` or `.env`) with your settings:
+
+```bash config
+# Required Settings
+GEMINI_API_KEY=your-gemini-api-key
+TOKEN_SECRET=your-jwt-secret
+
+# Optional Settings
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=SecurePassword123
+```
+
+<Note>
+  **Production Note**: Only `TOKEN_SECRET` and `GEMINI_API_KEY` are required for production. All other settings have optimized defaults.
+</Note>
+
+## Required Settings
+
+### GEMINI_API_KEY
+
+**Required**: Yes  
+**Description**: Google Gemini API key for AI features
+
+```bash
+GEMINI_API_KEY=AIzaSyC...
+```
+
+Get your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+<Warning>
+  Without this key, AI features (document generation, job matching, CV parsing) will not work.
+</Warning>
+
+### TOKEN_SECRET
+
+**Required**: Yes (auto-generated if not provided)  
+**Description**: Secret key for JWT token signing
+
+```bash
+TOKEN_SECRET=your-super-secret-key-change-this
+```
+
+Generate a secure random string:
+
+```bash
+openssl rand -base64 32
+```
+
+<Warning>
+  **Security**: Use a strong, random secret in production. Changing this will invalidate all existing user sessions.
+</Warning>
+
+## Admin User Settings
+
+<Note>
+  **Self-Hosted Only**: Admin user creation is automatic in self-hosted mode. In cloud mode, users authenticate via Google OAuth.
+</Note>
+
+### ADMIN_USERNAME
+
+**Required**: No  
+**Default**: `admin`  
+**Description**: Admin account username (3-50 characters)
+
+```bash
+ADMIN_USERNAME=myadmin
+```
+
+### ADMIN_PASSWORD
+
+**Required**: No  
+**Default**: `VegaAdmin`  
+**Description**: Admin account password (8-64 characters)
+
+```bash
+ADMIN_PASSWORD=SecurePassword123
+```
+
+<Warning>
+  Always change the default password on first login via Settings → Account.
+</Warning>
+
+### RESET_ADMIN_PASSWORD
+
+**Required**: No  
+**Default**: `false`  
+**Description**: Reset admin password on startup if user exists
+
+```bash
+RESET_ADMIN_PASSWORD=true
+```
+
+**Use Case**: Reset forgotten admin password
+
+```bash
+# Set new password and enable reset
+ADMIN_PASSWORD=NewSecurePassword456
+RESET_ADMIN_PASSWORD=true
+
+# Restart container
+docker restart vega-ai
+
+# After login, set back to false
+RESET_ADMIN_PASSWORD=false
+```
+
+## Cloud Mode Settings
+
+### CLOUD_MODE
+
+**Required**: No  
+**Default**: `false`  
+**Description**: Enable cloud-native features
+
+```bash
+CLOUD_MODE=true
+```
+
+**Cloud Mode Features:**
+- Google OAuth authentication only
+- Multi-tenant data isolation
+- Usage quota enforcement
+- Shared company reference data
+
+### Google OAuth Configuration
+
+**Required**: Only if `CLOUD_MODE=true`
+
+#### GOOGLE_CLIENT_ID
+
+```bash
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+```
+
+#### GOOGLE_CLIENT_SECRET
+
+```bash
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+#### GOOGLE_CLIENT_REDIRECT_URL
+
+```bash
+GOOGLE_CLIENT_REDIRECT_URL=https://yourdomain.com/auth/google/callback
+```
+
+**Setup Instructions:**
+
+<Steps>
+  <Step title="Create OAuth App">
+    Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials) and create OAuth 2.0 credentials
+  </Step>
+  
+  <Step title="Configure Redirect URI">
+    Add authorized redirect URI: `https://yourdomain.com/auth/google/callback`
+  </Step>
+  
+  <Step title="Get Credentials">
+    Copy the Client ID and Client Secret to your configuration
+  </Step>
+</Steps>
+
+## Development Settings
+
+### IS_DEVELOPMENT
+
+**Required**: No  
+**Default**: `false`  
+**Description**: Enable development mode features
+
+```bash
+IS_DEVELOPMENT=true
+```
+
+**Development Mode:**
+- Verbose logging
+- Detailed error messages
+- CORS allows all origins
+- Hot reload enabled (if supported)
+
+<Warning>
+  **Never enable in production** - exposes sensitive error details and security information.
+</Warning>
+
+## Advanced Settings
+
+### Database Configuration
+
+#### DB_CONNECTION_STRING
+
+**Required**: No  
+**Default**: `/app/data/vega.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON&_cache_size=10000&_synchronous=NORMAL`  
+**Description**: SQLite database path and parameters
+
+```bash
+# Custom database location
+DB_CONNECTION_STRING=/custom/path/vega.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON
+```
+
+**SQLite Optimizations:**
+- `_journal_mode=WAL`: Write-Ahead Logging for better concurrency
+- `_busy_timeout=5000`: Wait 5 seconds if database is locked
+- `_foreign_keys=ON`: Enforce referential integrity
+- `_cache_size=10000`: Cache size in pages (10MB)
+- `_synchronous=NORMAL`: Balance between safety and speed
+
+<Note>
+  The default settings are optimized for most use cases. Only change if you have specific requirements.
+</Note>
+
+### Logging
+
+#### LOG_LEVEL
+
+**Required**: No  
+**Default**: `info` (production), `debug` (development)  
+**Description**: Logging verbosity
+
+```bash
+LOG_LEVEL=info
+```
+
+**Available Levels:**
+- `debug`: Verbose logging for troubleshooting
+- `info`: Standard operational logs
+- `warn`: Warnings and errors only
+- `error`: Errors only
+
+### CORS Configuration
+
+#### CORS_ALLOWED_ORIGINS
+
+**Required**: No  
+**Default**: `*` (production), `localhost` (development)  
+**Description**: Comma-separated list of allowed origins
+
+```bash
+# Single origin
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# Multiple origins
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+```
+
+#### CORS_ALLOW_CREDENTIALS
+
+**Required**: No  
+**Default**: `false`  
+**Description**: Allow credentials in CORS requests
+
+```bash
+CORS_ALLOW_CREDENTIALS=true
+```
+
+**Example Configuration:**
+
+```bash
+# Production with specific origins
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://api.yourdomain.com
+CORS_ALLOW_CREDENTIALS=true
+
+# Development - allow all
+CORS_ALLOWED_ORIGINS=*
+CORS_ALLOW_CREDENTIALS=false
+```
+
+### Cookie Settings
+
+#### COOKIE_DOMAIN
+
+**Required**: No  
+**Default**: Auto-detected from request  
+**Description**: Cookie domain for session management
+
+```bash
+COOKIE_DOMAIN=yourdomain.com
+```
+
+#### COOKIE_SECURE
+
+**Required**: No  
+**Default**: `true` (production), `false` (development)  
+**Description**: Require HTTPS for cookies
+
+```bash
+COOKIE_SECURE=true
+```
+
+<Warning>
+  Only disable in development. Production should always use HTTPS.
+</Warning>
+
+### Token Expiry
+
+#### ACCESS_TOKEN_EXPIRY
+
+**Required**: No  
+**Default**: `60` (minutes)  
+**Description**: JWT access token lifetime
+
+```bash
+ACCESS_TOKEN_EXPIRY=60
+```
+
+#### REFRESH_TOKEN_EXPIRY
+
+**Required**: No  
+**Default**: `72` (hours)  
+**Description**: JWT refresh token lifetime
+
+```bash
+REFRESH_TOKEN_EXPIRY=72
+```
+
+## Configuration Examples
+
+### Minimal Self-Hosted Setup
+
+```bash config
+# Only the API key is required
+GEMINI_API_KEY=your-api-key
+```
+
+### Recommended Self-Hosted Setup
+
+```bash config
+# Required
+GEMINI_API_KEY=your-api-key
+TOKEN_SECRET=your-secret-key
+
+# Custom admin credentials
+ADMIN_USERNAME=myadmin
+ADMIN_PASSWORD=SecurePassword123
+```
+
+### Production Self-Hosted Setup
+
+```bash config
+# Required
+GEMINI_API_KEY=your-api-key
+TOKEN_SECRET=your-secret-key
+
+# Admin
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=VerySecurePassword123!
+
+# Security
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+COOKIE_SECURE=true
+COOKIE_DOMAIN=yourdomain.com
+
+# Logging
+LOG_LEVEL=info
+```
+
+### Cloud Mode Setup
+
+```bash config
+# Required
+GEMINI_API_KEY=your-api-key
+TOKEN_SECRET=your-secret-key
+
+# Cloud Mode
+CLOUD_MODE=true
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_CLIENT_REDIRECT_URL=https://yourdomain.com/auth/google/callback
+
+# Security
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+COOKIE_SECURE=true
+```
+
+### Development Setup
+
+```bash config
+# Required
+GEMINI_API_KEY=your-api-key
+TOKEN_SECRET=dev-secret-key
+
+# Development
+IS_DEVELOPMENT=true
+LOG_LEVEL=debug
+
+# OAuth (if testing)
+GOOGLE_CLIENT_ID=your-dev-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-dev-client-secret
+GOOGLE_CLIENT_REDIRECT_URL=http://localhost:8765/auth/google/callback
+```
+
+## Using Docker Secrets
+
+For production deployments, use Docker Secrets for sensitive values:
+
+<Steps>
+  <Step title="Create Secrets">
+    ```bash
+    echo "your-gemini-api-key" | docker secret create gemini_api_key -
+    echo "your-jwt-secret" | docker secret create token_secret -
+    ```
+  </Step>
+  
+  <Step title="Configure Environment">
+    Use the `_FILE` suffix to read from secret files:
+    
+    ```yaml docker-compose.yml
+    services:
+      vega-ai:
+        image: ghcr.io/benidevo/vega-ai:latest
+        secrets:
+          - gemini_api_key
+          - token_secret
+        environment:
+          - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+          - TOKEN_SECRET_FILE=/run/secrets/token_secret
+    
+    secrets:
+      gemini_api_key:
+        external: true
+      token_secret:
+        external: true
+    ```
+  </Step>
+  
+  <Step title="Deploy">
+    ```bash
+    docker stack deploy -c docker-compose.yml vega-stack
+    ```
+  </Step>
+</Steps>
+
+**Supported `_FILE` Variables:**
+- `GEMINI_API_KEY_FILE`
+- `TOKEN_SECRET_FILE`
+- `ADMIN_PASSWORD_FILE`
+- `GOOGLE_CLIENT_SECRET_FILE`
+
+## Environment Variable Loading
+
+Vega AI loads configuration in this order (later sources override earlier ones):
+
+1. **Built-in defaults** - Optimized production values
+2. **Environment variables** - From shell or Docker
+3. **Config file** - Using `--env-file` flag
+4. **Docker secrets** - Using `_FILE` variables
+
+### Docker Run
+
+<CodeGroup>
+  ```bash Inline Variables
+  docker run -d \
+    -e GEMINI_API_KEY=your-api-key \
+    -e TOKEN_SECRET=your-secret \
+    -p 8765:8765 \
+    ghcr.io/benidevo/vega-ai:latest
+  ```
+
+  ```bash Config File
+  docker run -d \
+    --env-file config \
+    -p 8765:8765 \
+    ghcr.io/benidevo/vega-ai:latest
+  ```
+
+  ```bash Docker Secrets
+  docker run -d \
+    --secret gemini_api_key \
+    -e GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key \
+    -p 8765:8765 \
+    ghcr.io/benidevo/vega-ai:latest
+  ```
+</CodeGroup>
+
+### Docker Compose
+
+<CodeGroup>
+  ```yaml Environment Block
+  services:
+    vega-ai:
+      image: ghcr.io/benidevo/vega-ai:latest
+      environment:
+        - GEMINI_API_KEY=your-api-key
+        - TOKEN_SECRET=your-secret
+      ports:
+        - "8765:8765"
+  ```
+
+  ```yaml Config File
+  services:
+    vega-ai:
+      image: ghcr.io/benidevo/vega-ai:latest
+      env_file:
+        - config
+      ports:
+        - "8765:8765"
+  ```
+
+  ```yaml Docker Secrets
+  services:
+    vega-ai:
+      image: ghcr.io/benidevo/vega-ai:latest
+      secrets:
+        - gemini_api_key
+      environment:
+        - GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
+      ports:
+        - "8765:8765"
+  
+  secrets:
+    gemini_api_key:
+      external: true
+  ```
+</CodeGroup>
+
+## Troubleshooting
+
+### Configuration Not Loading
+
+**Check container logs:**
+```bash
+docker logs vega-ai
+```
+
+**Verify environment variables:**
+```bash
+docker exec vega-ai env | grep GEMINI
+```
+
+**Test configuration file:**
+```bash
+# Check for syntax errors
+cat config | grep -v '^#' | grep -v '^$'
+```
+
+### Default Credentials Warning
+
+If you see warnings about default credentials:
+
+1. Verify your config file is being loaded
+2. Check environment variable names (case-sensitive)
+3. Ensure no quotes around values in config file
+4. Restart the container after changes
+
+### Invalid API Key
+
+**Symptoms:**
+- AI features fail
+- "Invalid API key" errors in logs
+
+**Solutions:**
+1. Verify key is correct at [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Check for extra spaces or newlines
+3. Ensure key starts with `AIza`
+4. Verify API is enabled in Google Cloud Console
+
+## Security Best Practices
+
+<Warning>
+  **Production Security Checklist**
+</Warning>
+
+✅ Use strong, random `TOKEN_SECRET` (32+ characters)  
+✅ Change default admin password immediately  
+✅ Use Docker Secrets for sensitive values  
+✅ Enable HTTPS with `COOKIE_SECURE=true`  
+✅ Restrict CORS to specific origins  
+✅ Keep API keys out of version control  
+✅ Use `.env` files (not checked into git)  
+✅ Regularly update to latest version  
+✅ Monitor logs for suspicious activity  
+✅ Backup database regularly
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Get Vega AI running in 5 minutes
+  </Card>
+  <Card title="Cloud vs Self-Hosted" icon="scale-balanced" href="/getting-started/cloud-vs-selfhost">
+    Choose your deployment option
+  </Card>
+</CardGroup>
