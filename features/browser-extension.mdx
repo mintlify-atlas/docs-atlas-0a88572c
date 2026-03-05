@@ -1,203 +1,169 @@
 ---
 title: 'Browser Extension'
-description: 'Capture job postings directly from LinkedIn, Indeed, and other job boards with one click'
+description: 'Capture job postings directly from LinkedIn and other job boards with one click'
 icon: 'puzzle-piece'
 ---
 
 ## Overview
 
-The Vega AI browser extension (coming soon) will enable you to capture job postings directly from job boards and company career pages with a single click. Save jobs to your Vega AI dashboard without manual copying and pasting.
-
-<Note>
-  The browser extension is currently under development. This page describes the planned functionality.
-</Note>
-
-## Planned Features
+The **Vega AI Job Capture** browser extension enables you to capture job postings directly from LinkedIn and other job boards with a single click. Save jobs to your Vega AI dashboard without manual copying and pasting.
 
 <CardGroup cols={2}>
   <Card title="One-Click Capture" icon="mouse-pointer">
-    Save job postings with a single click while browsing job boards.
+    Save job postings with a single click while browsing job boards
   </Card>
   
   <Card title="Auto-Fill Detection" icon="sparkles">
-    Automatically extract job title, company, description, location, and other details.
+    Automatically extract job title, company, description, location, and other details
   </Card>
   
-  <Card title="Multiple Platforms" icon="globe">
-    Support for LinkedIn, Indeed, Glassdoor, and other major job platforms.
+  <Card title="LinkedIn Support" icon="linkedin">
+    Optimized for LinkedIn job postings and company pages
   </Card>
   
   <Card title="Instant Sync" icon="sync">
-    Jobs instantly appear in your Vega AI dashboard for tracking and analysis.
+    Jobs instantly appear in your Vega AI dashboard for tracking and analysis
   </Card>
 </CardGroup>
 
-## Supported Platforms
+## Installation
 
-The extension will support major job platforms:
-
-### Job Boards
-
-<Tabs>
-  <Tab title="LinkedIn">
-    Extract job postings from LinkedIn's job search and company pages.
-    - Job title and company name
-    - Full job description
-    - Location and job type
-    - Application URL
-    - Company information
-  </Tab>
-  
-  <Tab title="Indeed">
-    Capture jobs from Indeed's search results and job detail pages.
-    - Job posting details
-    - Company reviews link
-    - Salary information (if available)
-    - Required skills and qualifications
-  </Tab>
-  
-  <Tab title="Glassdoor">
-    Save jobs from Glassdoor along with company ratings.
-    - Job details
-    - Company ratings and reviews
-    - Salary estimates
-    - Interview insights
-  </Tab>
-  
-  <Tab title="Company Sites">
-    Generic extraction for company career pages.
-    - Flexible parsing for various formats
-    - Manual field editing if needed
-    - Support for custom career portals
-  </Tab>
-</Tabs>
-
-## How It Will Work
+Download and install the extension from the [GitHub Releases](https://github.com/benidevo/vega-ai-extension/releases/latest) page.
 
 <Steps>
-  <Step title="Install Extension">
-    Install the Vega AI extension from the Chrome Web Store or Firefox Add-ons.
+  <Step title="Download Extension">
+    Visit the [releases page](https://github.com/benidevo/vega-ai-extension/releases/latest) and download the latest `.zip` file
   </Step>
   
-  <Step title="Sign In">
-    Sign in with your Vega AI account credentials.
+  <Step title="Extract Files">
+    Extract the ZIP file to a folder on your computer
   </Step>
   
-  <Step title="Browse Job Boards">
-    Visit LinkedIn, Indeed, or any other supported job platform.
+  <Step title="Open Chrome Extensions">
+    Open Chrome and navigate to `chrome://extensions/`
   </Step>
   
-  <Step title="Click Extension Icon">
-    When viewing a job posting, click the Vega AI extension icon.
+  <Step title="Enable Developer Mode">
+    Enable "Developer mode" toggle in the top right corner
   </Step>
   
-  <Step title="Review Details">
-    The extension will auto-fill job details. Review and edit if needed.
+  <Step title="Load Extension">
+    Click "Load unpacked" and select the extracted folder
   </Step>
   
-  <Step title="Save to Dashboard">
-    Click "Save" to add the job to your Vega AI dashboard.
-  </Step>
-  
-  <Step title="Access in Vega AI">
-    The job immediately appears in your dashboard, ready for tracking and AI analysis.
+  <Step title="Verify Installation">
+    The Vega AI icon should appear in your Chrome toolbar
   </Step>
 </Steps>
 
-## Data Extraction
+<Note>
+  The extension is currently available for Chrome and Edge browsers. Firefox support is planned for future releases.
+</Note>
 
-The extension will intelligently extract job information:
+## Configuration
 
-### Automatically Captured Fields
+After installation, configure the extension to connect to your Vega AI instance.
 
-```typescript
-interface CapturedJob {
-  title: string;           // Job title
-  company: string;         // Company name
-  description: string;     // Full job description
-  location: string;        // Job location
-  jobType: string;         // Full-time, Part-time, Contract, etc.
-  sourceURL: string;       // Original job posting URL
-  applicationURL: string;  // Application link (if different)
-  requiredSkills: string[];// Extracted skills and requirements
-  postedDate: string;      // When the job was posted
-  salary: string;          // Salary info (if available)
-}
-```
+### Cloud Mode Configuration
 
-### Smart Parsing
+If you're using the Vega AI cloud service at [vega.benidevo.com](https://vega.benidevo.com):
 
-<CardGroup cols={2}>
-  <Card title="NLP Processing" icon="brain">
-    Uses natural language processing to identify key information in job descriptions.
-  </Card>
+<Steps>
+  <Step title="Click Extension Icon">
+    Click the Vega AI extension icon in your browser toolbar
+  </Step>
   
-  <Card title="Skill Extraction" icon="code">
-    Automatically identifies required skills, technologies, and qualifications.
-  </Card>
+  <Step title="Open Settings">
+    Click the settings/gear icon in the extension popup
+  </Step>
   
-  <Card title="Duplicate Detection" icon="copy">
-    Checks for existing jobs in your dashboard to prevent duplicates.
-  </Card>
+  <Step title="Enter Cloud URL">
+    The cloud URL should already be configured by default: `https://vega.benidevo.com`
+  </Step>
   
-  <Card title="Data Validation" icon="check">
-    Validates extracted data and prompts for missing required fields.
-  </Card>
-</CardGroup>
+  <Step title="Authenticate">
+    Sign in with your Vega AI cloud account credentials
+  </Step>
+</Steps>
 
-## Extension UI
+### Self-Hosted Configuration
 
-The extension will feature a clean, intuitive interface:
+If you're running your own Vega AI instance:
 
-### Popup Window
-
-```plaintext
-┌─────────────────────────────────────┐
-│ Vega AI - Save Job                  │
-├─────────────────────────────────────┤
-│ Title: [Auto-filled]                │
-│ Company: [Auto-filled]              │
-│ Location: [Auto-filled]             │
-│ Job Type: [Detected]                │
-│ Status: [Interested ▼]              │
-├─────────────────────────────────────┤
-│ ✓ Description captured              │
-│ ✓ Skills extracted                  │
-│ ✓ Source URL saved                  │
-├─────────────────────────────────────┤
-│ [Edit Details] [Save to Dashboard]  │
-└─────────────────────────────────────┘
-```
-
-### Features
-
-<Tabs>
-  <Tab title="Quick Save">
-    One-click save with auto-filled details for fast job capture.
-  </Tab>
+<Steps>
+  <Step title="Open Extension Settings">
+    Click the Vega AI icon and go to settings
+  </Step>
   
-  <Tab title="Edit Before Save">
-    Option to review and edit extracted information before saving.
-  </Tab>
+  <Step title="Update Server URL">
+    Change the server URL to your self-hosted instance (e.g., `http://localhost:8765` or your custom domain)
+  </Step>
   
-  <Tab title="Set Initial Status">
-    Choose initial status (Interested, Applied, etc.) when saving.
-  </Tab>
+  <Step title="Configure CORS">
+    Ensure your Vega AI instance allows CORS requests from the extension. Add your extension ID to `CORS_ALLOWED_ORIGINS` in your `.env` file
+  </Step>
   
-  <Tab title="Add Notes">
-    Add quick notes or tags when capturing the job.
-  </Tab>
-</Tabs>
+  <Step title="Authenticate">
+    Sign in with your self-hosted account credentials
+  </Step>
+</Steps>
+
+## Using the Extension
+
+Once configured, use the extension to capture jobs while browsing LinkedIn or other job boards.
+
+<Steps>
+  <Step title="Browse Job Postings">
+    Navigate to a job posting on LinkedIn or another supported job board
+  </Step>
+  
+  <Step title="Click Extension Icon">
+    Click the Vega AI extension icon in your browser toolbar
+  </Step>
+  
+  <Step title="Review Captured Data">
+    The extension automatically extracts job details. Review and edit if needed
+  </Step>
+  
+  <Step title="Set Initial Status">
+    Choose an initial status for the job (Interested, Applied, etc.)
+  </Step>
+  
+  <Step title="Save to Dashboard">
+    Click "Save" to add the job to your Vega AI dashboard
+  </Step>
+  
+  <Step title="Access in Vega AI">
+    The job immediately appears in your dashboard, ready for tracking and AI analysis
+  </Step>
+</Steps>
 
 ## API Integration
 
-The extension will communicate with Vega AI through REST API:
+The extension communicates with Vega AI using the REST API.
 
-### Create Job Endpoint
+### Authentication
+
+The extension uses the same authentication as the web application:
+
+```typescript
+// Extension authenticates via API
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "your-username",
+  "password": "your-password"
+}
+```
+
+### Creating Jobs
+
+Jobs are created using the jobs API endpoint:
 
 ```typescript
 // Extension sends job data to Vega AI API
-POST /api/jobs/new
+POST /api/jobs
 Content-Type: application/json
 Authorization: Bearer <user_token>
 
@@ -208,220 +174,135 @@ Authorization: Bearer <user_token>
   "location": "San Francisco, CA",
   "job_type": "full_time",
   "source_url": "https://linkedin.com/jobs/123",
-  "application_url": "https://techcorp.com/apply/123",
-  "required_skills": ["Python", "React", "AWS"],
   "status": "interested"
 }
 ```
 
-### Response Handling
+See the [API Reference](/api/jobs/create-job) for complete documentation.
 
-```typescript
-// Vega AI API response
-{
-  "success": true,
-  "job": {
-    "id": 456,
-    "title": "Senior Software Engineer",
-    "company": {
-      "name": "TechCorp Inc"
-    },
-    "created_at": "2024-01-15T10:30:00Z"
-  },
-  "is_new": true,
-  "message": "Job added successfully!"
-}
+## Troubleshooting
+
+### Extension Not Appearing
+
+<Accordion title="Extension icon not visible in toolbar">
+  1. Go to `chrome://extensions/`
+  2. Verify the extension is enabled
+  3. Check that "Developer mode" is still enabled
+  4. Try reloading the extension
+</Accordion>
+
+<Accordion title="Connection Failed">
+  1. Verify your Vega AI instance is running
+  2. Check the server URL in extension settings
+  3. For self-hosted: Ensure CORS is configured correctly
+  4. Verify your authentication credentials
+</Accordion>
+
+<Accordion title="Job Not Saving">
+  1. Check your internet connection
+  2. Verify you're authenticated in the extension
+  3. Check the browser console for error messages
+  4. Ensure all required fields are filled
+</Accordion>
+
+### CORS Configuration (Self-Hosted)
+
+If you're running Vega AI self-hosted, you need to configure CORS to allow the extension to communicate with your instance.
+
+Add the following to your `.env` file or environment variables:
+
+```bash
+# Allow extension to make API requests
+CORS_ALLOWED_ORIGINS=chrome-extension://YOUR_EXTENSION_ID,http://localhost:8765
+
+# For development, you can use wildcard (not recommended for production)
+# CORS_ALLOWED_ORIGINS=*
 ```
 
-## Browser Support
+To find your extension ID:
+1. Go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. The extension ID is shown under the extension name
 
-The extension will be available for major browsers:
+## Building from Source
 
-<CardGroup cols={3}>
-  <Card title="Chrome" icon="chrome">
-    Chrome Web Store download
-  </Card>
+Developers can build the extension from source or contribute to its development.
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/benidevo/vega-ai-extension.git
+    cd vega-ai-extension
+    ```
+  </Step>
   
-  <Card title="Firefox" icon="firefox">
-    Firefox Add-ons download
-  </Card>
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
   
-  <Card title="Edge" icon="edge">
-    Microsoft Edge Add-ons download
-  </Card>
-</CardGroup>
-
-## Privacy and Permissions
-
-### Required Permissions
-
-<AccordionGroup>
-  <Accordion title="Active Tab">
-    Access to the current tab to read job posting content when you click the extension icon.
-  </Accordion>
+  <Step title="Build Extension">
+    ```bash
+    npm run build
+    ```
+  </Step>
   
-  <Accordion title="Storage">
-    Local storage for caching your authentication token and preferences.
-  </Accordion>
-  
-  <Accordion title="Host Permissions">
-    Access to supported job board domains (LinkedIn, Indeed, etc.) to extract job information.
-  </Accordion>
-</AccordionGroup>
+  <Step title="Load in Chrome">
+    Load the `dist/` directory as an unpacked extension in Chrome
+  </Step>
+</Steps>
 
-### Privacy Guarantees
+Visit the [extension repository](https://github.com/benidevo/vega-ai-extension) for full development documentation.
+
+## Privacy and Security
+
+### Data Handling
 
 <CardGroup cols={2}>
   <Card title="No Background Tracking" icon="eye-slash">
-    The extension only activates when you click the icon. No passive data collection.
+    The extension only activates when you click the icon. No passive data collection
   </Card>
   
   <Card title="Minimal Data Access" icon="lock">
-    Only accesses job posting data, never personal browsing history or other page content.
+    Only accesses job posting data when you explicitly capture a job
   </Card>
   
   <Card title="Secure Transmission" icon="shield">
-    All data sent to Vega AI uses encrypted HTTPS connections.
+    All data sent to Vega AI uses encrypted HTTPS connections
   </Card>
   
-  <Card title="No Third-Party Sharing" icon="ban">
-    Captured data is sent only to your Vega AI account, never to third parties.
-  </Card>
-</CardGroup>
-
-## Planned Advanced Features
-
-### Coming Soon
-
-<CardGroup cols={2}>
-  <Card title="Batch Capture" icon="layer-group">
-    Save multiple jobs from search results pages at once.
-  </Card>
-  
-  <Card title="Auto-Tag" icon="tags">
-    Automatically tag jobs by industry, seniority, or technology stack.
-  </Card>
-  
-  <Card title="Quick Match" icon="gauge">
-    See instant match score preview in the extension popup.
-  </Card>
-  
-  <Card title="Application Tracking" icon="clock">
-    Track application deadlines and set reminders directly from the extension.
+  <Card title="Your Data, Your Control" icon="user-shield">
+    Data is sent only to your Vega AI account, stored on your chosen instance
   </Card>
 </CardGroup>
 
-## Development Status
+### Required Permissions
 
-<Steps>
-  <Step title="Design Phase" icon="check">
-    UI/UX design completed for extension interface.
-  </Step>
+The extension requires minimal permissions:
+
+<AccordionGroup>
+  <Accordion title="Active Tab">
+    Access to the current tab to read job posting content when you click the extension icon. No background access to your browsing activity.
+  </Accordion>
   
-  <Step title="API Development" icon="check">
-    Backend API endpoints for job creation already exist.
-  </Step>
+  <Accordion title="Storage">
+    Local storage for caching your authentication token and server URL preferences. No personal data is stored locally.
+  </Accordion>
   
-  <Step title="Extension Development" icon="spinner">
-    Currently building the browser extension components.
-  </Step>
-  
-  <Step title="Platform Integration" icon="clock">
-    Integrating with LinkedIn, Indeed, and other job boards.
-  </Step>
-  
-  <Step title="Beta Testing" icon="clock">
-    Planned beta testing with select users.
-  </Step>
-  
-  <Step title="Public Release" icon="clock">
-    Target: Q2 2024 for initial Chrome version.
-  </Step>
-</Steps>
-
-## Join the Beta
-
-<Note>
-  Interested in early access to the browser extension? Sign up for our beta program to get notified when testing begins.
-</Note>
-
-### Beta Program Benefits
-
-- Early access to the extension
-- Direct feedback channel to development team
-- Influence feature priorities
-- Free premium features during beta period
-
-## Alternative: Manual Entry
-
-Until the extension is available, you can manually add jobs:
-
-<Steps>
-  <Step title="Copy Job Details">
-    Copy the job title, company, and description from the job board.
-  </Step>
-  
-  <Step title="Navigate to Vega AI">
-    Go to Vega AI and click "New Job".
-  </Step>
-  
-  <Step title="Paste Information">
-    Paste the copied information into the job creation form.
-  </Step>
-  
-  <Step title="Add URL">
-    Copy and paste the job posting URL into the Source URL field.
-  </Step>
-  
-  <Step title="Save">
-    Click "Add Job" to save to your dashboard.
-  </Step>
-</Steps>
-
-## API for Custom Integrations
-
-Developers can build custom integrations using the Vega AI API:
-
-```go
-// Job creation endpoint in Vega AI
-POST /api/jobs/new
-
-// Request handler
-func (h *JobHandler) CreateJob(c *gin.Context) {
-    // Extract form data
-    title := strings.TrimSpace(c.PostForm("title"))
-    description := strings.TrimSpace(c.PostForm("description"))
-    companyName := strings.TrimSpace(c.PostForm("company_name"))
-    
-    // Create job with options
-    job, isNew, err := h.service.CreateJob(
-        c.Request.Context(),
-        userID,
-        title,
-        description,
-        companyName,
-        options...,
-    )
-    
-    // Return response
-    if isNew {
-        c.JSON(http.StatusCreated, gin.H{
-            "success": true,
-            "job": job,
-            "message": "Job added successfully!",
-        })
-    }
-}
-```
+  <Accordion title="Host Permissions">
+    Access to supported job board domains (LinkedIn, Indeed, etc.) to extract job information only when you activate the extension.
+  </Accordion>
+</AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Job Tracking" icon="briefcase" href="/features/job-tracking">
-    Learn how to manage jobs in your dashboard.
+    Learn how to manage jobs in your dashboard
   </Card>
   
   <Card title="API Documentation" icon="code" href="/api/authentication/overview">
-    Explore the API for building custom integrations.
+    Explore the API for building custom integrations
   </Card>
 </CardGroup>

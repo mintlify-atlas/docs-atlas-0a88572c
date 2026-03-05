@@ -77,7 +77,8 @@
               "api/authentication/overview",
               "api/authentication/login",
               "api/authentication/google-oauth",
-              "api/authentication/refresh-token"
+              "api/authentication/refresh-token",
+              "api/authentication/verify-token"
             ]
           },
           {
