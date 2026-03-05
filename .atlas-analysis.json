@@ -1,0 +1,118 @@
+{
+  "projectType": "saas",
+  "projectName": "Vega AI",
+  "projectDescription": "AI-powered job application tracking system with intelligent matching, document generation, and profile management.",
+  "theme": "palm",
+  "primaryColor": "#0c8d85",
+  "lightColor": "#0c545c",
+  "darkColor": "#3bc6b4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["introduction", "features"]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/quickstart",
+              "getting-started/cloud-vs-selfhost",
+              "getting-started/configuration"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/job-tracking",
+              "features/ai-matching",
+              "features/document-generation",
+              "features/profile-management",
+              "features/browser-extension"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/docker-compose",
+              "deployment/docker-swarm",
+              "deployment/environment-variables"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/browser-extension",
+              "integrations/gemini-ai"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/authentication/overview",
+              "api/authentication/login",
+              "api/authentication/google-oauth",
+              "api/authentication/refresh-token"
+            ]
+          },
+          {
+            "group": "Jobs",
+            "pages": [
+              "api/jobs/overview",
+              "api/jobs/create-job",
+              "api/jobs/get-quota"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "System Design",
+            "pages": [
+              "architecture/overview",
+              "architecture/tech-stack",
+              "architecture/database-schema",
+              "architecture/security"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/testing",
+              "development/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered job matching with compatibility scores",
+    "Automatic cover letter and CV generation",
+    "CV parsing to populate user profiles",
+    "Job application tracking with customizable statuses",
+    "Browser extension for one-click job capture",
+    "Self-hosted deployment with complete data privacy",
+    "Multi-tenant cloud mode with usage quotas",
+    "OAuth and JWT authentication"
+  ],
+  "publicApiSurface": [
+    "POST /api/jobs - Create job application",
+    "GET /api/jobs/quota - Get AI analysis quota status",
+    "POST /api/auth/login - Username/password authentication",
+    "POST /api/auth/google - Google OAuth token exchange",
+    "POST /api/auth/refresh - Refresh access token",
+    "GET /health - Health check endpoint"
+  ]
+}
